@@ -49,17 +49,17 @@ fi
 
 default_fg=$alt_bg
 
-TMUX_POWERLINE_SEPARATOR_LEFT_BOLD="◤"
-TMUX_POWERLINE_SEPARATOR_LEFT_THIN="◢"
-TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD="◢"
-TMUX_POWERLINE_SEPARATOR_RIGHT_THIN="◤"
+TMUX_POWERLINE_SEPARATOR_LEFT_BOLD="◥"
+TMUX_POWERLINE_SEPARATOR_LEFT_THIN="╲"
+TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD="◤"
+TMUX_POWERLINE_SEPARATOR_RIGHT_THIN="╱"
 TMUX_POWERLINE_SEPARATOR_THIN=""
 
 TMUX_POWERLINE_DEFAULT_BACKGROUND_COLOR=${TMUX_POWERLINE_DEFAULT_BACKGROUND_COLOR:-$default_bg}
 TMUX_POWERLINE_DEFAULT_FOREGROUND_COLOR=${TMUX_POWERLINE_DEFAULT_FOREGROUND_COLOR:-$default_fg}
 
-TMUX_POWERLINE_DEFAULT_LEFTSIDE_SEPARATOR=${TMUX_POWERLINE_DEFAULT_LEFTSIDE_SEPARATOR:-$TMUX_POWERLINE_SEPARATOR_RIGHT_THIN}
-TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR=${TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR:-$TMUX_POWERLINE_SEPARATOR_LEFT_THIN}
+TMUX_POWERLINE_DEFAULT_LEFTSIDE_SEPARATOR=${TMUX_POWERLINE_DEFAULT_LEFTSIDE_SEPARATOR:-$TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD}
+TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR=${TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR:-$TMUX_POWERLINE_SEPARATOR_LEFT_BOLD}
 
 TMUX_POWERLINE_SEG_VCS_BRANCH_GIT_SYMBOL_COLOUR=$default_bg
 
@@ -68,14 +68,13 @@ TMUX_POWERLINE_SEG_VCS_BRANCH_GIT_SYMBOL_COLOUR=$default_bg
 
 if [ -z $TMUX_POWERLINE_WINDOW_STATUS_CURRENT ]; then
 	TMUX_POWERLINE_WINDOW_STATUS_CURRENT=(
-		"#[$(echo "fg=$default_bg,bg=$selected,bold,noitalics,nounderscore")]" \
-		"$TMUX_POWERLINE_SEPARATOR_LEFT_BOLD" \
-		" #I#{#F,} " \
-		"#[$(echo "fg=$tint_bg0,bg=$selected,bold,noitalics,nounderscore")]" \
+		"#[$(echo "fg=$default_bg,bg=$selected,noitalics,nounderscore")]" \
 		"$TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD" \
-		"#[$(echo "fg=$selected,bg=$tint_bg0,bold,noitalics,nounderscore")]" \
+		" #I#{#F,} " \
+		"$TMUX_POWERLINE_SEPARATOR_RIGHT_THIN" \
+		"#[$(echo "fg=$default_bg,bg=$selected,bold,noitalics,nounderscore")]" \
 		" #W " \
-		"#[$(echo "fg=$default_bg,bg=$tint_bg0,bold,noitalics,nounderscore")]" \
+		"#[$(echo "fg=$selected,bg=$default_bg,bold,noitalics,nounderscore")]" \
 		"$TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD" \
 	)
 fi
@@ -88,14 +87,15 @@ fi
 
 if [ -z $TMUX_POWERLINE_WINDOW_STATUS_FORMAT ]; then
 	TMUX_POWERLINE_WINDOW_STATUS_FORMAT=(
-		"#[$(echo "fg=$default_bg,bg=$tint_bg1,nobold,noitalics,nounderscore")]" \
-		"$TMUX_POWERLINE_SEPARATOR_LEFT_BOLD" \
-		" #I#{#F,} " \
-		"#[$(echo "fg=$tint_bg0,bg=$tint_bg1,nobold,noitalics,nounderscore")]" \
+		"#[$(echo "fg=$default_bg,bg=$tint_bg0,nobold,noitalics,nounderscore")]" \
 		"$TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD" \
 		"#[$(echo "fg=$tint_bg1,bg=$tint_bg0,nobold,noitalics,nounderscore")]" \
+		" #I#{#F,} " \
+		"#[$(echo "fg=$tint_bg1,bg=$tint_bg0,nobold,noitalics,nounderscore")]" \
+		"$TMUX_POWERLINE_SEPARATOR_RIGHT_THIN" \
+		"#[$(echo "fg=$tint_bg1,bg=$tint_bg0,nobold,noitalics,nounderscore")]" \
 		" #W "
-		"#[$(echo "fg=$default_bg,bg=$tint_bg0,nobold,noitalics,nounderscore")]" \
+		"#[$(echo "fg=$tint_bg0,bg=$default_bg,nobold,noitalics,nounderscore")]" \
 		"$TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD"
 	)
 fi
