@@ -11,8 +11,8 @@ clone and by no other mechanism.
 
 | Host | Role | OS | dotfiles clone | scripts clone | keeps scripts? why | frozen SHA | cut over | interdot? | zsh owner | 5.5.8 find output |
 |---|---|---|---|---|---|---|---|---|---|---|
-| gazorpazorp | **MAIN** | macOS 26.6 (25G72), Darwin 25.6.0, **x86_64** | /opt/dotfiles | **/opt/scripts** (HEAD 0586ee2, clean but for `?? configs/oh-my-zsh/completions/_rustup`) | **yes** — dev-container + CTF scripts (answer A2) | `0586ee2` | | **yes** — /opt/tools/interdotensional @ 50c98a0 (byte-identical commit to the VPS) | **the machine itself** — see below | |
-| krootabulon | VPS | Ubuntu 24.04 | /opt/dotfiles | /opt/scripts | yes — utils/, pwn/, the container image | n/a (cut over first) | | yes | this repo (`zsh/zshrc`, `zsh/zshenv`) | |
+| gazorpazorp | **MAIN** | macOS 26.6 (25G72), Darwin 25.6.0, **x86_64** | /opt/dotfiles | **/opt/scripts** (HEAD 0586ee2, clean but for `?? configs/oh-my-zsh/completions/_rustup`) | **yes** — dev-container + CTF scripts (answer A2) | `0586ee2` | **2026-08-06** | **yes** — /opt/tools/interdotensional, pulled to `0f220ca` at 5.5.5a (9 link entries) | **the machine itself** — see below | **EMPTY** ✅ on `main` |
+| krootabulon | VPS | Ubuntu 24.04 | /opt/dotfiles | /opt/scripts | yes — utils/, pwn/, the container image | n/a (cut over first) | **2026-08-06** | yes | this repo (`zsh/zshrc`, `zsh/zshenv`) | **EMPTY** ✅ |
 | iPad (Blink) | — | iPadOS | none | none | n/a | n/a | n/a | n/a | n/a | no clone, no symlinks; depends on the VPS over ssh |
 
 ## gazorpazorp — symlink inventory and post-split owner
@@ -72,3 +72,21 @@ this migration** — the byte sizes above are the diff to start from.
 `~/.zshrc`, rewritten in 5.5.5c from `/opt/scripts/configs/oh-my-zsh/completions`
 to `${XDG_CONFIG_HOME:-$HOME/.config}/zsh/completions`. That is the one edit
 `install.sh` cannot make, because it lives in a file this repo does not own.
+
+## 5.5 completion log — 2026-08-06
+
+Both machines cut over. Recorded here because two of these edits live in files
+no repository owns, so this table is the only place they are written down.
+
+| What | gazorpazorp (MAIN) | krootabulon (VPS) |
+|---|---|---|
+| `install.sh --force` | rc 0, `--check` rc 0 | rc 0, `--check` rc 0 |
+| 5.5.5a — interdot pulled | `0f220ca`, **9** link entries | n/a (origin of the commit) |
+| 5.5.5b — stale dir symlinks removed | `~/.config/{ghostty,zellij,kitty}` | n/a (never had them) |
+| 5.5.5c — machine's own `~/.zshrc` | **edited by hand**; backup at `~/.zshrc.pre-split` | n/a (uses this repo's `zsh/zshrc`) |
+| Residual `/opt/scripts` in own zsh files | **1, legitimate**: `export UTILS="/opt/scripts/utils"` — `utils/` stays in `scripts` forever and is why `determine_system.sh` resolves by name here | n/a |
+| 5.5.8 — untracked `_rustup` cleared | yes, before the pull | n/a (2.1 committed it) |
+| 5.5.8 — `find ~` for `scripts/configs` links | **EMPTY** | **EMPTY** |
+| Branch after unfreeze | `main` | `main` |
+
+`~/.zshrc.pre-split` (14854 B) stays until Phase 9.
