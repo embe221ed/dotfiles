@@ -1,7 +1,7 @@
 # ~/.zshenv — read by EVERY zsh (login, interactive, script, `docker exec zsh -c …`).
 #
 # Only PATH and environment go here; nothing interactive, nothing that prints.
-# Symlinked into place:  ln -sf /opt/scripts/configs/zsh/zshenv ~/.zshenv
+# installed by ./install.sh in embe221ed/dotfiles
 #
 # Everything is guarded so the same file works on the host and inside the dev
 # container, where several of these toolchains may be absent.
@@ -10,6 +10,10 @@
 # read before .zshrc, so this is the earliest correct place for it. Without it
 # every `exec zsh` (which is how display_mode.sh reloads the shell) grows $path.
 typeset -U path PATH fpath FPATH cdpath manpath MANPATH
+
+# Where this repository is checked out. Derived from this file's own location, so
+# the repo carries no absolute path to itself and the Mac can clone it anywhere.
+export DOTFILES=${DOTFILES:-${${(%):-%x}:A:h:h}}
 
 # --- toolchains ---------------------------------------------------------------
 [[ -r "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"

@@ -1,6 +1,6 @@
 # ~/.zshrc — interactive shell config, shared by the host and the dev container.
 #
-#   ln -sf /opt/scripts/configs/zsh/zshrc ~/.zshrc
+#   installed by ./install.sh in embe221ed/dotfiles
 #
 # Machine-specific bits live in ~/.zshrc.local (sourced near the bottom, after
 # the prompt theme). Everything a toolchain provides is guarded with a presence
@@ -67,7 +67,10 @@ ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 # Lazy-load nvm via the bundled omz plugin — defers ~500ms off the critical path.
 zstyle ':omz:plugins:nvm' lazy yes
 
-source $ZSH/oh-my-zsh.sh
+# oh-my-zsh is a PREREQUISITE, not a dependency this repo installs (see README).
+# Guarded so a machine without it gets a plain-but-working shell — everything
+# below this line, including the theme and ~/.zshrc.local, still runs.
+[[ -r $ZSH/oh-my-zsh.sh ]] && source $ZSH/oh-my-zsh.sh
 
 ################################################################################
 # User configuration (everything below runs after the theme is loaded)
