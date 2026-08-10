@@ -342,7 +342,7 @@ return require("lazy").setup(
       'stevearc/quicker.nvim',
       ft = "qf",
       ---@module "quicker"
-      opts = {},
+      config = function() require('editor._quicker') end,
     },
     { 'onsails/lspkind.nvim', lazy = true },                          -- vscode-like pictograms
     {
@@ -446,6 +446,7 @@ return require("lazy").setup(
       dependencies = {
         { "kkharji/sqlite.lua" },
       },
+      config = function() require('editor.bookmarks') end,
     },
     {
       "OXY2DEV/markview.nvim",
