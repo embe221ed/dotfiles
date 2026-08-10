@@ -70,7 +70,10 @@ DRY_RUN=no
 CHECK=no
 FORCE=no
 WITH_ZSH=no
-LANG_PROFILE=sui
+# Deliberately empty: a bare `./install.sh` must not silently revert an earlier
+# explicit `--lang aptos`. Resolved from the installed link below, once $DOTFILES
+# is known, and only then defaulted to sui.
+LANG_PROFILE=
 
 # ------------------------------------------------------------------- messaging
 say()  { printf '%s\n' "$*"; }
@@ -114,8 +117,10 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
+# "" is legal here and means "not specified" — it is resolved from the installed
+# link once $DOTFILES is known. A bad --lang value still dies before any work.
 case $LANG_PROFILE in
-sui | aptos) ;;
+"" | sui | aptos) ;;
 *) die "unknown --lang profile: $LANG_PROFILE (expected sui or aptos)" ;;
 esac
 
@@ -131,6 +136,16 @@ DOTFILES=$(CDPATH= cd -- "$self_dir" && pwd -P) ||
 	die "cannot resolve my own directory from \"$0\" — run me as a file, not on stdin"
 [ -f "$DOTFILES/$PROG" ] ||
 	die "resolved DOTFILES=$DOTFILES but $DOTFILES/$PROG does not exist"
+
+# No --lang given: keep whatever profile is already installed, so a bare re-run
+# (which is exactly what `--check` tells you to do) cannot undo an earlier
+# `--lang aptos`. Fall back to sui only when there is no existing choice.
+if [ -z "$LANG_PROFILE" ]; then
+	case $(readlink "$DOTFILES/nvim/lua/languages.lua" 2>/dev/null) in
+	*languages.lua.aptos) LANG_PROFILE=aptos ;;
+	*)                    LANG_PROFILE=sui   ;;
+	esac
+fi
 
 XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
 XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
