@@ -10,7 +10,9 @@ api.nvim_create_autocmd(
     callback  = function()
       vim.bo.shiftwidth  = 4
       vim.bo.tabstop     = 4
-      vim.wo.conceallevel = 2
+      -- vim.wo[0][0] is the BUFFER-scoped window option. Plain vim.wo sets the
+      -- window value, which then leaks onto the next buffer shown in this window.
+      vim.wo[0][0].conceallevel = 2
       -- Check if current window is floating
       local win_config = api.nvim_win_get_config(0)
       local is_floating = win_config.relative ~= ""
@@ -18,7 +20,7 @@ api.nvim_create_autocmd(
 
       -- Only enable spellcheck if not in a floating window
       if not is_floating and not is_special_buffer then
-        vim.wo.spell = true
+        vim.wo[0][0].spell = true
         vim.bo.spelllang = "en_us"
       end
     end,
@@ -29,12 +31,13 @@ api.nvim_create_autocmd(
   "FileType",
   {
     group     = group,
-    desc      = "disable virtual_lines for filetypes",
+    desc      = "disable diagnostics in the Lazy UI buffer",
     pattern   = { "lazy" },
-    callback  = function()
-      vim.diagnostic.config({
-        virtual_lines = false,
-      })
+    -- vim.diagnostic.config() with no namespace mutates the GLOBAL config and is
+    -- never restored, so one :Lazy used to kill virtual_lines everywhere for the
+    -- rest of the session. Scope the suppression to the buffer that fired.
+    callback  = function(args)
+      vim.diagnostic.enable(false, { bufnr = args.buf })
     end,
   }
 )
@@ -78,7 +81,10 @@ api.nvim_create_autocmd(
 )
 
 api.nvim_create_autocmd(
-  { "FileType", "BufWinEnter" },
+  -- FileType only: for BufWinEnter the pattern is matched against the buffer's
+  -- FILE NAME, and the outline buffer is unnamed at that point (later
+  -- OUTLINE_<tab>), so that half could never fire.
+  "FileType",
   {
     group = group,
     pattern = { "Outline" },
