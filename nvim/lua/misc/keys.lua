@@ -52,7 +52,9 @@ map('n', '<space>ud', function() vim.diagnostic.enable(not vim.diagnostic.is_ena
 map('n', '<space>uh', function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled()) end, { desc = "Toggle inlay hints" })
 map('n', '<space>uv', function()
   local cfg = vim.diagnostic.config()
-  vim.diagnostic.config({ virtual_lines = cfg.virtual_lines and false or { current_line = true } })
+  -- NOT `cfg.virtual_lines and false or {...}`: the middle operand is falsy, so
+  -- the `or` branch always wins and both arms return the same table.
+  vim.diagnostic.config({ virtual_lines = (not cfg.virtual_lines) and { current_line = true } or false })
 end, { desc = "Toggle virtual_lines" })
 
 -- pickers (snacks) — find & search
