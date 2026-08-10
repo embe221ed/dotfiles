@@ -23,7 +23,9 @@ end, {
     local pickers = vim.tbl_keys(Snacks.picker)
     table.sort(pickers)
     return vim.tbl_filter(function(key)
-      return key:match("^" .. arg_lead) and type(Snacks.picker[key]) == "function"
+      -- vim.pesc: arg_lead is raw cmdline input, so `[`, `(` or `%` would be read
+      -- as Lua pattern metacharacters (E5108), and `.` would match too much.
+      return key:find("^" .. vim.pesc(arg_lead)) ~= nil and type(Snacks.picker[key]) == "function"
     end, pickers)
   end,
 })
@@ -41,6 +43,13 @@ api.nvim_create_user_command(
 
 api.nvim_create_user_command(
   "Converturl",
-  function() vim.fn.system('converturl') end,
+  function()
+    -- vim.fn.system swallows a 127 "command not found" into the return value, so
+    -- without this check a missing binary is indistinguishable from success.
+    local out = vim.fn.system('converturl')
+    if vim.v.shell_error ~= 0 then
+      vim.notify('converturl failed (' .. vim.v.shell_error .. '): ' .. out, vim.log.levels.ERROR)
+    end
+  end,
   { desc = "convert the github URL using `converturl` shell command" }
 )
