@@ -210,8 +210,12 @@ dap.configurations.cpp = {
       end
 
       -- Find executables in build directory
-      local find_cmd = string.format("find %s -type f -executable -not -name '*.so*' -not -name '*.a'", full_build_dir)
+      -- -perm -u+x, not -executable: the latter is a GNU extension and BSD/macOS
+      -- find exits 1 with "unknown primary or operator", which vim.fn.system
+      -- folds into stdout and which then became the "executable" path.
+      local find_cmd = string.format("find %s -type f -perm -u+x -not -name '*.so*' -not -name '*.a'", full_build_dir)
       local executables_output = vim.fn.system(find_cmd)
+      if vim.v.shell_error ~= 0 then executables_output = "" end
       local executables = {}
 
       for line in executables_output:gmatch("[^\r\n]+") do
