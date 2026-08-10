@@ -140,7 +140,20 @@ require('lualine').setup {
     },
     lualine_c = {},
     lualine_x = {},
-    lualine_y = { 'selectioncount', search_result, 'diff', 'filetype' },
+    lualine_y = {
+      'selectioncount', search_result,
+      {
+        -- Without an explicit source, lualine diffs the file ON DISK and only on
+        -- BufEnter/BufWritePost — one `git diff` fork per buffer switch, and the
+        -- counts contradict the gitsigns gutter while you have unsaved changes.
+        'diff',
+        source = function()
+          local gs = vim.b.gitsigns_status_dict
+          if gs then return { added = gs.added, modified = gs.changed, removed = gs.removed } end
+        end,
+      },
+      'filetype',
+    },
     lualine_z = { '%l:%c', '%p%% / %L' },
   },
   inactive_sections = {
