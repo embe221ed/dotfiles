@@ -57,6 +57,13 @@ vim.opt.foldnestmax       = 20 -- default value, probably unnecessary
 
 vim.lsp.log.set_level("off")
 
+-- Nothing in the plugin spec uses the python3 remote provider, but nvim's own
+-- ftplugin/python.vim calls has('python3'), which probes each candidate
+-- interpreter. python3 is a pyenv shim (~115 ms a call), so that probe added
+-- ~400 ms to opening the first .py file of a session.
+-- To get :py3 back, pin it instead: vim.g.python3_host_prog = vim.fn.exepath("python3")
+vim.g.loaded_python3_provider = 0
+
 -- filetype detection
 vim.filetype.add({
   extension = {
