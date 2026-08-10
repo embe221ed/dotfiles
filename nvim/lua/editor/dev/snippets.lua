@@ -24,8 +24,10 @@ ls.add_snippets("move", {
     -- function, first parameter is the function, second the placeholder's index
     -- whose text it gets as input.
     f(copy, 2),
-    -- simple text with a linebreak (`"\t"`)
-    t("#[test]", "\t"),
+    -- a text_node's SECOND arg is node_opts, not more text — "\t" was silently
+    -- discarded, so #[test] landed inside the comment above it. A table is how
+    -- you emit a line break.
+    t({ "", "#[test]" }),
     -- text
     -- text
     t({ "", "public fun " }),
@@ -43,8 +45,8 @@ ls.add_snippets("move", {
     t({ "", "}" }),
   }),
   s("debug", {
-    -- simple text with a linebreak (`"\t"`)
-    t("#[test_only]", "\t"),
+    -- see the `test` snippet above: second arg is node_opts, not text
+    t({ "#[test_only]", "" }),
     -- text
     t("// Parameters: "),
     -- function, first parameter is the function, second the placeholder's index
