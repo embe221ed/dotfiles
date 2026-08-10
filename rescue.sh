@@ -58,6 +58,18 @@ OS=$(uname)
 link() {
 	[ -e "$1" ] || { echo "rescue.sh: no source $1 — skipped" >&2; return 0; }
 	mkdir -p -- "${2%/*}"
+	# A destination that is NOT a symlink is somebody's real data. `rm -f` would
+	# delete a real file outright (no backup) and FAIL on a real directory, which
+	# under `set -e` aborts the whole run half-migrated. Move it aside instead —
+	# install.sh classifies this same case as a conflict rather than clobbering.
+	if [ -e "$2" ] && [ ! -L "$2" ]; then
+		_bak="$2.bak-$(date +%Y%m%d%H%M%S)"
+		mv -- "$2" "$_bak" || {
+			echo "rescue.sh: $2 exists and is not a symlink, could not move it aside — skipped" >&2
+			return 0
+		}
+		echo "rescue.sh: moved $2 aside to $_bak" >&2
+	fi
 	rm -f -- "$2"
 	ln -s -- "$1" "$2"
 	[ "$(readlink "$2")" = "$1" ] || { echo "rescue.sh: $2 did not take" >&2; return 1; }
