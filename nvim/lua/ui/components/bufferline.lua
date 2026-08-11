@@ -297,6 +297,21 @@ end
 
 local bufferline  = require('bufferline')
 
+-- path -> filetype, for buffers bufferline asks about before they are loaded.
+-- vim.filetype.match costs ~0.06ms, which is small until it runs for every
+-- buffer on every tabline redraw; a path's filetype cannot change, so cache it.
+local ft_by_path = {}
+local function resolve_filetype(element)
+  if element.filetype and element.filetype ~= "" then return element.filetype end
+  local path = element.path
+  if not path or path == "" then return nil end
+  local cached = ft_by_path[path]
+  if cached ~= nil then return cached or nil end
+  local ft = vim.filetype.match({ filename = path })
+  ft_by_path[path] = ft or false     -- false memoises "no match", nil means "not asked yet"
+  return ft
+end
+
 local style_preset = {
     bufferline.style_preset.no_italic,
     bufferline.style_preset.no_bold,
@@ -318,11 +333,34 @@ bufferline.setup {
         buffer_close_icon = "×",
         close_icon = "×",
         get_element_icon = function(element)
-          -- element consists of {filetype: string, path: string, extension: string, directory: string}
+          -- element consists of {filetype: string, path: string, extension: string, directory: boolean}
           -- This can be used to change how bufferline fetches the icon
           -- for an element e.g. a buffer or a tab.
-          -- e.g.
-          local icon, hl = require('nvim-web-devicons').get_icon_by_filetype(element.filetype, { default = true })
+          --
+          -- `filetype` is EMPTY for buffers that are listed but not yet loaded —
+          -- which is every buffer except the current one right after a session
+          -- restore, because detection only runs on BufReadPost. Returning a
+          -- non-nil icon here short-circuits bufferline's own path-based
+          -- fallback, so asking for `default = true` on the filetype lookup used
+          -- to collapse every restored buffer to the default glyph.
+          --
+          -- resolve_filetype() derives the same filetype nvim would detect, from
+          -- the path alone, so an unloaded buffer gets the icon it will still
+          -- have once loaded — no glyph change when you click into a tab.
+          -- The name/extension fallback then covers filetypes devicons has no
+          -- entry for (solidity has no filetype icon but does have one by
+          -- extension).
+          local devicons = require('nvim-web-devicons')
+          -- let bufferline supply its own folder icon for directory elements
+          if element.directory then return nil end
+
+          local icon, hl
+          local ft = resolve_filetype(element)
+          if ft then icon, hl = devicons.get_icon_by_filetype(ft, { default = false }) end
+          if not icon then
+            icon, hl = devicons.get_icon(
+              vim.fn.fnamemodify(element.path or "", ":t"), element.extension, { default = true })
+          end
           if vim.g.symbol_font then icon = icon .. " " end
           return icon, hl
         end,
