@@ -61,7 +61,7 @@ anywhere in this tree.
 
 | Repo | Owns |
 |---|---|
-| **dotfiles** (this) | `zsh/`, `nvim/`, `zsh/completions/`, `kitty/` themes, `blink/`, `ipython/`, `colorls/`, `silicon/`, `.ripgreprc` |
+| **dotfiles** (this) | `zsh/`, `nvim/`, `zsh/completions/`, `git/` (shared git aliases), `kitty/` themes, `blink/`, `ipython/`, `colorls/`, `silicon/`, `.ripgreprc` |
 | [**scripts**](https://github.com/embe221ed/scripts) | utilities, CTF tooling, the dev container image, and `utils/determine_system.sh` |
 | [**interdotensional**](https://github.com/embe221ed/interdotensional) | the theme generator: `nvim/lua/*.generated.lua`, `$ZSH_CUSTOM`, `~/.tmux.conf`, `~/.config/colorls`, `~/.config/kitty/kitty.conf`, and **all** of `~/.config/ghostty` and `~/.config/zellij` |
 
@@ -70,6 +70,14 @@ three theme files were removed. It is orphaned and can be archived.
 
 ## Notes
 
+- `git/aliases.gitconfig` holds the shared git aliases (`git aliases` lists
+  them; `git <alias> -h` shows usage). `install.sh` links it to
+  `~/.config/git/aliases.gitconfig` and adds
+  `include.path = <that path>` to the global git config, exactly once. The rest
+  of `~/.gitconfig` — identity, credential helpers, per-machine tweaks — stays
+  out of the repo on purpose, and the repo file is **not** the auto-read
+  `~/.config/git/config` slot, so `git config --global` writes can never land
+  in the repo through the symlink.
 - `nvim/lua/globals.lua` and `nvim/lua/ui/colors.lua` are **committed shims**.
   They `pcall`-load gitignored `*.generated.lua` siblings that `interdot link`
   fills, and work without them: a clone with no generator starts **unthemed**,

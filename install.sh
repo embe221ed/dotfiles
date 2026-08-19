@@ -16,12 +16,24 @@
 #
 # The manifest is OS-CONDITIONAL, and macOS differs in BOTH directions.
 #
-#   Linux / container : 5 rows — ~/.zshenv, ~/.zshrc, ~/.config/nvim,
-#                       ~/.config/zsh/completions, nvim/lua/languages.lua
-#   macOS (default)   : the last 3 of those (the zsh pair is SUPPRESSED — see
+#   Linux / container : 6 rows — ~/.zshenv, ~/.zshrc, ~/.config/nvim,
+#                       ~/.config/zsh/completions,
+#                       ~/.config/git/aliases.gitconfig, nvim/lua/languages.lua
+#   macOS (default)   : the last 4 of those (the zsh pair is SUPPRESSED — see
 #                       zsh_links) plus a 3-row Darwin tail: silicon/config and
-#                       the two oh-my-zsh prompt themes. Up to 6.
-#   macOS --with-zsh  : as above with the zsh pair restored. Up to 8.
+#                       the two oh-my-zsh prompt themes. Up to 7.
+#   macOS --with-zsh  : as above with the zsh pair restored. Up to 9.
+#
+# ONE MANAGED STEP IS NOT A ROW: the global git config must carry
+# `include.path = $XDG_CONFIG_HOME/git/aliases.gitconfig` or the linked aliases
+# file is inert (git ignores a missing include SILENTLY, which is exactly the
+# degradation this script exists to make loud). It is ensured idempotently with
+# `git config --global --add`, gated on `git` being on PATH, and reported in
+# every mode next to the rows. Deliberately NOT the auto-read
+# $XDG_CONFIG_HOME/git/config slot: on a machine with no ~/.gitconfig, git
+# aims `git config --global` WRITES at that file — i.e. straight through the
+# symlink into this public repo, where a credential helper or identity would be
+# one `git add -A` away from a push. The include keeps writes machine-local.
 #
 # Every conditional row is gated on its consumer being present, so an absent
 # consumer is a skipped row rather than an error, and every skip is PRINTED. The
@@ -163,6 +175,13 @@ OS=$(uname)
 COMPLETIONS_SRC=$DOTFILES/zsh/completions
 [ -d "$COMPLETIONS_SRC" ] || COMPLETIONS_SRC=$DOTFILES/oh-my-zsh/completions
 COMPLETIONS_DST=$XDG_CONFIG_HOME/zsh/completions
+
+# The shared git aliases. The DESTINATION path is the one the include.path line
+# names, so it must be stable per-machine even when the clone moves — which is
+# the reason this is a manifest row (a symlink install.sh retargets) and not a
+# clone-absolute path written into ~/.gitconfig.
+GIT_ALIASES_SRC=$DOTFILES/git/aliases.gitconfig
+GIT_ALIASES_DST=$XDG_CONFIG_HOME/git/aliases.gitconfig
 
 # --------------------------------------------------------------------- helpers
 
@@ -316,6 +335,7 @@ for_each_link() {
 $(zsh_links)
 $DOTFILES/nvim|$XDG_CONFIG_HOME/nvim
 $COMPLETIONS_SRC|$COMPLETIONS_DST
+$GIT_ALIASES_SRC|$GIT_ALIASES_DST
 languages.lua.$LANG_PROFILE|$DOTFILES/nvim/lua/languages.lua
 $(darwin_links)
 EOF
@@ -408,6 +428,56 @@ apply() {
 	return 0
 }
 
+# ----------------------------------------------------------- global git include
+# The one managed thing that is not a symlink: each machine's own ~/.gitconfig
+# must carry `include.path = $GIT_ALIASES_DST` or the aliases row above links a
+# file nothing reads. That line lives in a file this repo does NOT own —
+# ~/.gitconfig keeps the user identity and credential helpers per-machine, which
+# is the entire point of splitting the aliases out — so it is APPENDED here with
+# `git config --global --add` rather than linked over.
+#
+# The presence test asks git, not grep-over-~/.gitconfig: --global also reads
+# $XDG_CONFIG_HOME/git/config, and --type=path canonicalizes a hand-written
+# `~/.config/…` spelling to the same answer, so an include the user added by
+# hand, in either file and either spelling, is "ok" rather than a duplicate.
+git_include_status() {
+	command -v git >/dev/null 2>&1 || { printf nogit; return 0; }
+	if git config --global --type=path --get-all include.path 2>/dev/null |
+		grep -Fx -- "$GIT_ALIASES_DST" >/dev/null; then
+		printf ok
+	else
+		printf add
+	fi
+	return 0
+}
+
+report_git_include() {
+	case $(git_include_status) in
+	ok)
+		N_OK=$((N_OK + 1))
+		plan "ok" "global git config includes $GIT_ALIASES_DST"
+		;;
+	add)
+		N_CHANGE=$((N_CHANGE + 1))
+		plan "gitconfig" "add include.path = $GIT_ALIASES_DST to the global git config"
+		;;
+	nogit)
+		plan "skip" "git not on PATH — the aliases include.path is not managed"
+		;;
+	esac
+	return 0
+}
+
+apply_git_include() {
+	[ "$(git_include_status)" = add ] || return 0
+	git config --global --add include.path "$GIT_ALIASES_DST" ||
+		die "could not add include.path to the global git config"
+	[ "$(git_include_status)" = ok ] ||
+		die "include verification failed: git does not see include.path = $GIT_ALIASES_DST"
+	say "added include.path = $GIT_ALIASES_DST to the global git config"
+	return 0
+}
+
 # ------------------------------------------------------- generated nvim slots
 # interdotensional's `interdot link` fills these with ABSOLUTE symlinks into its
 # own output/ tree. If that repo moves or is absent the links dangle, the
@@ -491,6 +561,7 @@ MODE=install
 say "$PROG: DOTFILES=$DOTFILES  profile=$LANG_PROFILE  os=$OS  mode=$MODE"
 say ""
 for_each_link preflight
+report_git_include
 report_zsh_scope
 report_skipped
 
@@ -508,7 +579,7 @@ if [ "$CHECK" = yes ]; then
 	check_determine_system || DS_BAD=1
 	say ""
 	if [ "$N_CHANGE" -gt 0 ]; then
-		die "$N_CHANGE link(s) are not in place — run $PROG to fix"
+		die "$N_CHANGE change(s) needed (links or the git include) — run $PROG to fix"
 	fi
 	# Only ever set by a determine_system.sh that RESOLVED and then answered
 	# wrong. An absent one is fine and returns 0 above.
@@ -517,7 +588,7 @@ if [ "$CHECK" = yes ]; then
 		warn "$GEN_BAD generated nvim slot(s) missing or dangling; nvim will start unthemed"
 		exit 2
 	fi
-	say "$PROG: all $N_OK links in place"
+	say "$PROG: all $N_OK links and includes in place"
 	exit 0
 fi
 
@@ -529,13 +600,14 @@ fi
 
 if [ "$N_CHANGE" -eq 0 ]; then
 	say ""
-	say "$PROG: already up to date ($N_OK links)"
+	say "$PROG: already up to date ($N_OK links and includes)"
 	check_determine_system || warn "a stale determine_system.sh is on PATH (the themes' \`uname\` floor still answers correctly)"
 	exit 0
 fi
 
 say ""
 for_each_link apply
+apply_git_include
 
 # zsh caches the completion functions it found on $fpath. Moving or creating the
 # completions directory without dropping the dump means the new completions are

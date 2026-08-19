@@ -12,6 +12,11 @@
 #
 # Before the completions move the old path was oh-my-zsh/completions, so that one
 # link is best-effort: it tries both and warns rather than failing the run.
+# The git aliases link (git/aliases.gitconfig) is best-effort too, gated on the
+# root carrying the file: pre-split roots have no git/ directory at all, so
+# there it is a silent skip, not a warning. The include.path line that reads the
+# link lives in ~/.gitconfig — a per-machine file this script never touches — so
+# repointing the symlink is the whole job.
 #
 # ON macOS IT DOES NOT TOUCH ~/.zshrc OR ~/.zshenv, and that is the single most
 # important line in this file. Those are 14854 B and 356 B of INDEPENDENT,
@@ -95,6 +100,12 @@ elif [ -d "$ROOT/oh-my-zsh/completions" ]; then
 else
 	echo "rescue.sh: no completions directory under $ROOT — skipped" >&2
 fi
+
+# The shared git aliases. Same failing-AND-OR-list idiom as the Darwin block
+# below (safe under `set -e`; see the comment there). Gated rather than warned:
+# a --to root from before the split simply has no git/ directory, and a rescue
+# is not the moment to hear about aliases.
+[ -f "$ROOT/git/aliases.gitconfig" ] && link "$ROOT/git/aliases.gitconfig" "$XDG/git/aliases.gitconfig"
 
 # languages.lua is gitignored, so a fresh clone has none and init.lua:15's
 # unguarded require('languages') aborts the rest of init.lua. Relative link, to
