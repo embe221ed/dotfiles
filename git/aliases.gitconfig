@@ -121,7 +121,7 @@
     # Deep inspect a file's history
     last-touch = "!f() { \
         _help='git last-touch <path> [count]  │  Recent commit history for a file (default: 5)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ -z \"$1\" ] || [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=${2:-5}; \
         git log -\"$n\" --pretty=format:\"%C(yellow)  %h  %C(cyan)%ad  %C(dim cyan)(%ar)%C(reset)%n       %s%n%C(dim white)       by %an%C(reset)%n\" --date=short -- \"$1\"; \
     }; f"
