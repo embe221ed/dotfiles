@@ -177,6 +177,7 @@
         _help='git team [days] [-- path]  │  Contributor activity bar chart (default: 30 days)'; \
         if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         days=30; if [ \"$1\" -gt 0 ] 2>/dev/null; then days=$1; shift; fi; \
+        if ! git rev-parse -q --verify HEAD >/dev/null 2>&1; then printf '%s  no commits yet%s\\n' \"$yel\" \"$rst\"; return 1; fi; \
         git shortlog -sn --since=\"${days} days ago\" --no-merges \"$@\" \
         | awk -v yel=\"$yel\" -v cyn=\"$cyn\" -v grn=\"$grn\" -v rst=\"$rst\" '{ \
             count=$1; name=substr($0, index($0,$2)); \
