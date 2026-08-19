@@ -211,7 +211,7 @@
         latest=$(git tag --sort=-creatordate | head -1); [ -n \"$latest\" ] || latest='(none)'; \
         locals=$(git for-each-ref --format='%(refname)' refs/heads | awk 'END { print NR }'); \
         remotes=$(git for-each-ref --format='%(refname)' refs/remotes | awk 'END { print NR }'); \
-        files=$(git ls-files -z \"$@\" | tr '\\0' '\\n' | awk 'END { print NR }'); \
+        files=$(git ls-files \"$@\" | awk 'END { print NR }'); \
         printf '\\n%s  Repository Overview%s\\n%s  ──────────────────────────────────────────────────────────────────%s\\n' \"$bcy\" \"$rst\" \"$gry\" \"$rst\"; \
         printf '%s  %-10s%s  %s%s%s %s@ %s%s\\n' \"$cyn\" 'head' \"$rst\" \"$byl\" \"$head_ref\" \"$rst\" \"$gry\" \"$head_sha\" \"$rst\"; \
         printf '%s  %-10s%s  %s → %s\\n' \"$cyn\" 'span' \"$rst\" \"$first\" \"$last\"; \
@@ -224,7 +224,7 @@
             printf '%s  %-10s%s  %s%s — inspect .gitmodules%s\\n' \"$cyn\" 'submodules' \"$rst\" \"$brd\" \"$subs\" \"$rst\"; \
         fi; \
         printf '%s  %-10s%s\\n' \"$cyn\" 'languages' \"$rst\"; \
-        git ls-files -z \"$@\" | tr '\\0' '\\n' \
+        git ls-files \"$@\" \
         | awk -F/ '{ b=$NF; k=split(b, p, \".\"); if (k>1 && p[1]!=\"\") e=\".\" p[k]; else e=\"(none)\"; c[e]++ } END { for (e in c) printf \"%d %s\\n\", c[e], e }' \
         | sort -rn | head -\"$n\" \
         | awk -v yel=\"$yel\" -v cyn=\"$cyn\" -v grn=\"$grn\" -v rst=\"$rst\" '{ \
