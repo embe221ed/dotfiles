@@ -12,6 +12,12 @@
 # public repo, and this repo deliberately never becomes a `git config --global`
 # write target (that is why the link is named `aliases.gitconfig`, not the
 # auto-read `config` slot — see install.sh).
+#
+# The banners are printf, not echo, ON PURPOSE: git runs `!` aliases with
+# /bin/sh, which is dash on the Linux box (its echo interprets \033) but bash
+# on macOS (its echo does NOT — the main machine would print a literal
+# `\033[90m…` instead of a color). printf's format-string escapes render
+# identically under both, and POSIX guarantees \ddd octal in the format.
 
 [alias]
     # ╔══════════════════════════════════════════════╗
@@ -21,7 +27,7 @@
     # Beautiful branch graph log
     lg = "!f() { \
         _help='git lg [count] [-- path]  │  Graph log with colors and alignment (default: 30)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=30; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git log --graph --pretty=format:\"\
 %C(bold yellow)%h%C(reset) \
@@ -36,7 +42,7 @@
     # Compact one-line log with graph
     lo = "!f() { \
         _help='git lo [count] [-- path]  │  Compact one-line log with graph (default: 20)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=20; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git log --graph --pretty=format:\"\
 %C(bold yellow)●%C(reset) \
@@ -49,7 +55,7 @@
     # Show recent activity with file paths, piped to pager
     activity = "!f() { \
         _help='git activity [count] [-- path]  │  Recent commits with file tree (default: 15)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=15; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git log --pretty=format:'%h|%ad|%<(12,trunc)%an|%s' --date=short -\"$n\" --name-only \"$@\" \
         | awk -F'|' ' \
@@ -68,7 +74,7 @@
     # Files sorted by most recently modified
     recent-files = "!f() { \
         _help='git recent-files [count] [-- path]  │  Files sorted by last modified (default: 25)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=25; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git log --all --pretty=format: --name-only --diff-filter=AMR \"$@\" \
         | awk '!seen[$0]++ && NF' \
@@ -88,7 +94,7 @@
     # Recently changed directories with aligned bar chart
     recent-dirs = "!f() { \
         _help='git recent-dirs [days] [-- path]  │  Directory change frequency bar chart (default: 7 days)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         days=7; if [ \"$1\" -gt 0 ] 2>/dev/null; then days=$1; shift; fi; \
         git log --since=\"${days} days ago\" --name-only --pretty=format: \"$@\" \
         | sed '/^$/d' \
@@ -110,7 +116,7 @@
     # Deep inspect a file's history
     last-touch = "!f() { \
         _help='git last-touch <path> [count]  │  Recent commit history for a file (default: 5)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=${2:-5}; \
         git log -\"$n\" --pretty=format:\"%C(yellow)  %h  %C(cyan)%ad  %C(dim cyan)(%ar)%C(reset)%n       %s%n%C(dim white)       by %an%C(reset)%n\" --date=short -- \"$1\"; \
     }; f"
@@ -123,7 +129,7 @@
     # List branches sorted by last commit date
     branches = "!f() { \
         _help='git branches [count]  │  Branches sorted by last commit date (default: 20)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=${1:-20}; \
         git branch -a --sort=-committerdate --format='%(refname:short)|%(committerdate:short)|%(authorname)|%(subject)' \
         | head -\"$n\" \
@@ -141,7 +147,7 @@
     # Show who's been working on what
     team = "!f() { \
         _help='git team [days] [-- path]  │  Contributor activity bar chart (default: 30 days)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then echo ''; echo \"\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\"; echo \"\\033[1;36m  $_help\\033[0m\"; echo ''; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         days=30; if [ \"$1\" -gt 0 ] 2>/dev/null; then days=$1; shift; fi; \
         git shortlog -sn --since=\"${days} days ago\" --no-merges \"$@\" \
         | awk '{ \
@@ -165,10 +171,7 @@
 
     # List all aliases with descriptions
     aliases = "!f() { \
-        echo ''; \
-        echo '\\033[1;36m  Custom Git Aliases\\033[0m'; \
-        echo '\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m'; \
-        echo ''; \
+        printf '\\n\\033[1;36m  Custom Git Aliases\\033[0m\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\n'; \
         git config --get-regexp ^alias\\. | sed 's/^alias\\.\\([^ ]*\\) .*/\\1/' | sort -u | while read -r name; do \
             case \"$name\" in \
                 lg)           desc='Graph log with colors and alignment';; \
@@ -190,7 +193,5 @@
             esac; \
             printf '\\033[1;33m  %-16s \\033[90m%s\\033[0m\\n' \"$name\" \"$desc\"; \
         done; \
-        echo ''; \
-        echo '\\033[90m  Run git <alias> -h for usage details\\033[0m'; \
-        echo ''; \
+        printf '\\n\\033[90m  Run git <alias> -h for usage details\\033[0m\\n\\n'; \
     }; f"
