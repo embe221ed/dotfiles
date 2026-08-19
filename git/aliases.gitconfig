@@ -88,19 +88,18 @@
         _help='git recent-files [count] [-- path]  │  Files sorted by last modified (default: 25)'; \
         if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         n=25; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
-        git log --all --pretty=format: --name-only --diff-filter=AMR \"$@\" \
-        | awk '!seen[$0]++ && NF' \
-        | head -\"$n\" \
-        | while IFS= read -r file; do \
-            if git ls-files --error-unmatch \"$file\" >/dev/null 2>&1; then \
-                info=$(git log -1 --format='%ad|%ar|%an' --date=short -- \"$file\"); \
-                date=$(printf '%s\\n' \"$info\" | cut -d'|' -f1); \
-                ago=$(printf '%s\\n' \"$info\" | cut -d'|' -f2); \
-                author=$(printf '%s\\n' \"$info\" | cut -d'|' -f3); \
-                printf '\\033[33m  %s  \\033[36m%-14s  \\033[90m%-18s  \\033[0m%s\\n' \
-                    \"$date\" \"$ago\" \"$author\" \"$file\"; \
-            fi; \
-        done | less -RFX; \
+        git -c core.quotepath=false log --all --date=short --name-only --diff-filter=AMR \
+            --pretty=format:'%x01%ad%x01%<(16,trunc)%ar%x01%<(20,trunc)%an' \"$@\" \
+        | awk -v n=\"$n\" ' \
+            BEGIN { while ((\"git -c core.quotepath=false ls-files\" | getline l) > 0) t[l]=1 } \
+            substr($0,1,1)==\"\\001\" { split(substr($0,2), h, \"\\001\"); next } \
+            $0==\"\" { next } \
+            !($0 in t) { next } \
+            !seen[$0]++ { \
+                printf \"\\033[33m  %s  \\033[36m%s  \\033[90m%s\\033[0m%s\\n\", h[1], h[2], h[3], $0; \
+                if (++c>=n) exit \
+            } \
+        ' | less -RFX; \
     }; f"
 
     # Recently changed directories with aligned bar chart
