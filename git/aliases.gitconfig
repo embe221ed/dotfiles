@@ -108,7 +108,7 @@
             $0==\"\" { next } \
             !($0 in t) { next } \
             !seen[$0]++ { \
-                printf \"%s  %s  %s%s  %s%s%s%s\\n\", yel, h[1], cyn, h[2], gry, h[3], rst, $0; \
+                printf \"%s  %s  %s%s  %s%s%s  %s\\n\", yel, h[1], cyn, h[2], gry, h[3], rst, $0; \
                 if (++c>=n) exit \
             } \
         ' | less -RFX; \
