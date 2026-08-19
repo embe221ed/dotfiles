@@ -268,7 +268,7 @@
         _help='git hotspots [count] [-- path]  │  Most-changed files of all time, scaled bars (default: 20)'; \
         if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         n=20; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
-        git log --name-only --pretty=format: \"$@\" \
+        git -c core.quotepath=false log --name-only --pretty=format: \"$@\" \
         | awk 'NF' \
         | sort | uniq -c | sort -rn \
         | head -\"$n\" \
@@ -346,7 +346,7 @@
         git config --name-only --get-regexp '^alias\\.' | sed 's/^alias\\.//' | sort -u | while read -r name; do \
             body=$(git config --get alias.\"$name\"); \
             case \"$body\" in \
-                '!'*) desc=$(printf '%s\\n' \"$body\" | sed -n \"s/.*_help='[^']*│  *\\([^']*\\)'.*/\\1/p\");; \
+                '!'*) desc=$(printf '%s\\n' \"$body\" | sed -n \"s/.*_help='[^']*│  *\\([^']*\\)'.*/\\1/p\" | head -n 1);; \
                 *)    desc=\"alias for: git $body\";; \
             esac; \
             printf '%s  %-16s %s%s%s\\n' \"$byl\" \"$name\" \"$gry\" \"$desc\" \"$rst\"; \
