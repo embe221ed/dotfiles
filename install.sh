@@ -436,10 +436,19 @@ apply() {
 # is the entire point of splitting the aliases out — so it is APPENDED here with
 # `git config --global --add` rather than linked over.
 #
-# The presence test asks git, not grep-over-~/.gitconfig: --global also reads
-# $XDG_CONFIG_HOME/git/config, and --type=path canonicalizes a hand-written
-# `~/.config/…` spelling to the same answer, so an include the user added by
-# hand, in either file and either spelling, is "ok" rather than a duplicate.
+# The presence test asks git, not grep-over-~/.gitconfig, and the property it
+# buys is ALIGNMENT, not breadth: `git config --global` — for reads AND writes
+# alike — operates on exactly ONE file, ~/.gitconfig when that exists and
+# $XDG_CONFIG_HOME/git/config only otherwise (the man page's "reads both" is
+# about the runtime config stack, not this builtin). Because the probe above
+# and the --add below share that selection, they can never disagree about
+# which file they mean, so this script cannot append a duplicate of its own
+# include from any starting state. --type=path canonicalizes a hand-written
+# `~/.config/…` spelling to the same answer, so either spelling counts as ok.
+# The one blind spot is harmless and stays: an include hand-written into the
+# XDG file WHILE ~/.gitconfig exists is invisible to --global here, and the
+# worst case is one redundant identical include appended once — after which
+# the probe reads it back from ~/.gitconfig and reports ok forever.
 git_include_status() {
 	command -v git >/dev/null 2>&1 || { printf nogit; return 0; }
 	if git config --global --type=path --get-all include.path 2>/dev/null |
