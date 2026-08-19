@@ -110,8 +110,10 @@
             if(length(dir)>max) max=length(dir); \
             counts[NR]=count; dirs[NR]=dir; total=NR \
         } END { \
+            scale=(counts[1]>40)?40/counts[1]:1; \
             for(i=1;i<=total;i++) { \
-                bar=\"\"; for(j=0;j<counts[i];j++) bar=bar\"█\"; \
+                w=int(counts[i]*scale); if(w<1) w=1; \
+                bar=\"\"; for(j=0;j<w;j++) bar=bar\"█\"; \
                 printf \"\\033[33m  %3d  \\033[36m%-*s  \\033[32m%s\\033[0m\\n\", counts[i], max, dirs[i], bar \
             } \
         }'; \
@@ -156,7 +158,9 @@
         git shortlog -sn --since=\"${days} days ago\" --no-merges \"$@\" \
         | awk '{ \
             count=$1; name=substr($0, index($0,$2)); \
-            bar=\"\"; for(i=0;i<count;i++) bar=bar\"█\"; \
+            if (NR==1) scale=(count>40)?40/count:1; \
+            w=int(count*scale); if(w<1) w=1; \
+            bar=\"\"; for(i=0;i<w;i++) bar=bar\"█\"; \
             printf \"\\033[33m  %4d  \\033[36m%-25s  \\033[32m%s\\033[0m\\n\", count, name, bar \
         }'; \
     }; f"
