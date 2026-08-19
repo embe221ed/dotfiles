@@ -248,15 +248,15 @@
         if [ -z \"$1\" ] || [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         text=$1; shift; \
         n=10; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
-        git log -\"$n\" -S\"$text\" --pretty=format:'%h%x09%ad%x09%<(14,trunc)%an%x09%s' --date=short --name-only \"$@\" \
-        | awk -F'\\t' -v gry=\"$gry\" -v byl=\"$byl\" -v cyn=\"$cyn\" -v mag=\"$mag\" -v rst=\"$rst\" ' \
-            /^$/ { next } \
-            NF>=4 { \
+        git -c core.quotepath=false log -\"$n\" -S\"$text\" --pretty=format:'%x01%h%x01%ad%x01%<(14,trunc)%an%x01%s' --date=short --name-only \"$@\" \
+        | awk -v gry=\"$gry\" -v byl=\"$byl\" -v cyn=\"$cyn\" -v mag=\"$mag\" -v rst=\"$rst\" ' \
+            substr($0,1,1)==\"\\001\" { \
                 if (fc>0) { for(i=1;i<=fc;i++) { conn=(i<fc)?\"├─\":\"└─\"; printf \"%s       %s %s%s\\n\",gry,conn,files[i],rst } } \
-                s=$4; for(i=5;i<=NF;i++) s=s\"\\t\"$i; \
-                printf \"\\n%s  %s %s%s %s%s %s%s\\n\",byl,$1,cyn,$2,mag,$3,rst,s; \
+                k=split(substr($0,2), h, \"\\001\"); s=h[4]; for(i=5;i<=k;i++) s=s h[i]; \
+                printf \"\\n%s  %s %s%s %s%s %s%s\\n\",byl,h[1],cyn,h[2],mag,h[3],rst,s; \
                 fc=0; delete files; next \
             } \
+            /^$/ { next } \
             { files[++fc]=$0 } \
             END { if (fc>0) { for(i=1;i<=fc;i++) { conn=(i<fc)?\"├─\":\"└─\"; printf \"%s       %s %s%s\\n\",gry,conn,files[i],rst } } } \
         ' | less -RFX; \
