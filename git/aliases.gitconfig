@@ -30,6 +30,14 @@
 # untouched (less degrades to cat when stdout is not a tty). lg, lo and
 # last-touch are exempt on purpose: their inner `git log` brings git's own
 # pager, which behaves the same way (git sets LESS=FRX).
+#
+# Colors are tty-gated: every body opens with one [ -t 1 ] / NO_COLOR preamble
+# defining the palette (gry bcy yel byl cyn mag grn rst) as real ESC bytes —
+# made with $(printf), so no later stage ever has to escape-process them — or
+# as empty strings when stdout is a pipe or file. `git branches > notes.txt`
+# greps like plain text, matching what git itself already did for lg/lo's
+# %C() colors. awk receives the palette through -v variables; their values
+# contain no backslashes, so awk's -v escape processing cannot touch them.
 
 [alias]
     # ╔══════════════════════════════════════════════╗
@@ -38,8 +46,9 @@
 
     # Beautiful branch graph log
     lg = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git lg [count] [-- path]  │  Graph log with colors and alignment (default: 30)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         n=30; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git log --graph --pretty=format:\"\
 %C(bold yellow)%h%C(reset) \
@@ -53,8 +62,9 @@
 
     # Compact one-line log with graph
     lo = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git lo [count] [-- path]  │  Compact one-line log with graph (default: 20)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         n=20; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git log --graph --pretty=format:\"\
 %C(bold yellow)●%C(reset) \
@@ -66,37 +76,39 @@
 
     # Show recent activity with file paths, piped to pager
     activity = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git activity [count] [-- path]  │  Recent commits with file tree (default: 15)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         n=15; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git log --pretty=format:'%h|%ad|%<(12,trunc)%an|%s' --date=short -\"$n\" --name-only \"$@\" \
-        | awk -F'|' ' \
+        | awk -F'|' -v gry=\"$gry\" -v byl=\"$byl\" -v cyn=\"$cyn\" -v mag=\"$mag\" -v rst=\"$rst\" ' \
             /^$/ { next } \
             NF>=4 { \
-                if (fc>0) { for(i=1;i<=fc;i++) { conn=(i<fc)?\"├─\":\"└─\"; printf \"\\033[90m       %s %s\\033[0m\\n\",conn,files[i] } } \
-                printf \"\\n\\033[1;33m  %s \\033[36m%s \\033[35m%s \\033[0m%s\\n\",$1,$2,$3,$4; \
+                if (fc>0) { for(i=1;i<=fc;i++) { conn=(i<fc)?\"├─\":\"└─\"; printf \"%s       %s %s%s\\n\",gry,conn,files[i],rst } } \
+                printf \"\\n%s  %s %s%s %s%s %s%s\\n\",byl,$1,cyn,$2,mag,$3,rst,$4; \
                 fc=0; delete files; next \
             } \
             { files[++fc]=$0 } \
-            END { if (fc>0) { for(i=1;i<=fc;i++) { conn=(i<fc)?\"├─\":\"└─\"; printf \"\\033[90m       %s %s\\033[0m\\n\",conn,files[i] } } } \
+            END { if (fc>0) { for(i=1;i<=fc;i++) { conn=(i<fc)?\"├─\":\"└─\"; printf \"%s       %s %s%s\\n\",gry,conn,files[i],rst } } } \
         ' \
         | less -RFX; \
     }; f"
 
     # Files sorted by most recently modified
     recent-files = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git recent-files [count] [-- path]  │  Files sorted by last modified (default: 25)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         n=25; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; shift; fi; \
         git -c core.quotepath=false log --all --date=short --name-only --diff-filter=AMR \
             --pretty=format:'%x01%ad%x01%<(16,trunc)%ar%x01%<(20,trunc)%an' \"$@\" \
-        | awk -v n=\"$n\" ' \
+        | awk -v n=\"$n\" -v yel=\"$yel\" -v cyn=\"$cyn\" -v gry=\"$gry\" -v rst=\"$rst\" ' \
             BEGIN { while ((\"git -c core.quotepath=false ls-files\" | getline l) > 0) t[l]=1 } \
             substr($0,1,1)==\"\\001\" { split(substr($0,2), h, \"\\001\"); next } \
             $0==\"\" { next } \
             !($0 in t) { next } \
             !seen[$0]++ { \
-                printf \"\\033[33m  %s  \\033[36m%s  \\033[90m%s\\033[0m%s\\n\", h[1], h[2], h[3], $0; \
+                printf \"%s  %s  %s%s  %s%s%s%s\\n\", yel, h[1], cyn, h[2], gry, h[3], rst, $0; \
                 if (++c>=n) exit \
             } \
         ' | less -RFX; \
@@ -104,13 +116,14 @@
 
     # Recently changed directories with aligned bar chart
     recent-dirs = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git recent-dirs [days] [-- path]  │  Directory change frequency bar chart (default: 7 days)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         days=7; if [ \"$1\" -gt 0 ] 2>/dev/null; then days=$1; shift; fi; \
         git log --since=\"${days} days ago\" --name-only --pretty=format: \"$@\" \
         | sed -e '/^$/d' -e 's|^[^/]*$|.|' -e 's|/[^/]*$||' \
         | sort | uniq -c | sort -rn \
-        | awk '{ \
+        | awk -v yel=\"$yel\" -v cyn=\"$cyn\" -v grn=\"$grn\" -v rst=\"$rst\" '{ \
             count=$1; \
             dir=\"\"; for(i=2;i<=NF;i++) dir=dir (i>2?\" \":\"\") $i; \
             if(length(dir)>max) max=length(dir); \
@@ -120,15 +133,16 @@
             for(i=1;i<=total;i++) { \
                 w=int(counts[i]*scale); if(w<1) w=1; \
                 bar=\"\"; for(j=0;j<w;j++) bar=bar\"█\"; \
-                printf \"\\033[33m  %3d  \\033[36m%-*s  \\033[32m%s\\033[0m\\n\", counts[i], max, dirs[i], bar \
+                printf \"%s  %3d  %s%-*s  %s%s%s\\n\", yel, counts[i], cyn, max, dirs[i], grn, bar, rst \
             } \
         }' | less -RFX; \
     }; f"
 
     # Deep inspect a file's history
     last-touch = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git last-touch <path> [count]  │  Recent commit history for a file (default: 5)'; \
-        if [ -z \"$1\" ] || [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ -z \"$1\" ] || [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         n=${2:-5}; \
         git log -\"$n\" --pretty=format:\"%C(yellow)  %h  %C(cyan)%ad  %C(dim cyan)(%ar)%C(reset)%n       %s%n%C(dim white)       by %an%C(reset)%n\" --date=short -- \"$1\"; \
     }; f"
@@ -140,34 +154,36 @@
 
     # List branches sorted by last commit date
     branches = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git branches [count]  │  Branches sorted by last commit date (default: 20)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         n=20; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; fi; \
         git branch -a --sort=-committerdate --format='%(refname:short)|%(committerdate:short)|%(authorname)|%(subject)' \
         | head -\"$n\" \
-        | awk -F'|' '{ \
+        | awk -F'|' -v byl=\"$byl\" -v cyn=\"$cyn\" -v mag=\"$mag\" -v rst=\"$rst\" '{ \
             if(length($1)>bmax) bmax=length($1); \
             if(length($3)>amax) amax=length($3); \
             b[NR]=$1; d[NR]=$2; a[NR]=$3; s[NR]=$4; total=NR \
         } END { \
             for(i=1;i<=total;i++) { \
-                printf \"\\033[1;33m  %-*s  \\033[36m%s  \\033[35m%-*s  \\033[0m%s\\n\", bmax, b[i], d[i], amax, a[i], s[i] \
+                printf \"%s  %-*s  %s%s  %s%-*s  %s%s\\n\", byl, bmax, b[i], cyn, d[i], mag, amax, a[i], rst, s[i] \
             } \
         }' | less -RFX; \
     }; f"
 
     # Show who's been working on what
     team = "!f() { \
+        if [ -t 1 ] && [ -z \"${NO_COLOR:-}\" ]; then gry=$(printf '\\033[90m'); bcy=$(printf '\\033[1;36m'); yel=$(printf '\\033[33m'); byl=$(printf '\\033[1;33m'); cyn=$(printf '\\033[36m'); mag=$(printf '\\033[35m'); grn=$(printf '\\033[32m'); rst=$(printf '\\033[0m'); else gry=; bcy=; yel=; byl=; cyn=; mag=; grn=; rst=; fi; \
         _help='git team [days] [-- path]  │  Contributor activity bar chart (default: 30 days)'; \
-        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
+        if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n%s  ──────────────────────────────────────────────────────────────────%s\\n%s  %s%s\\n\\n' \"$gry\" \"$rst\" \"$bcy\" \"$_help\" \"$rst\"; return; fi; \
         days=30; if [ \"$1\" -gt 0 ] 2>/dev/null; then days=$1; shift; fi; \
         git shortlog -sn --since=\"${days} days ago\" --no-merges \"$@\" \
-        | awk '{ \
+        | awk -v yel=\"$yel\" -v cyn=\"$cyn\" -v grn=\"$grn\" -v rst=\"$rst\" '{ \
             count=$1; name=substr($0, index($0,$2)); \
             if (NR==1) scale=(count>40)?40/count:1; \
             w=int(count*scale); if(w<1) w=1; \
             bar=\"\"; for(i=0;i<w;i++) bar=bar\"█\"; \
-            printf \"\\033[33m  %4d  \\033[36m%-25s  \\033[32m%s\\033[0m\\n\", count, name, bar \
+            printf \"%s  %4d  %s%-25s  %s%s%s\\n\", yel, count, cyn, name, grn, bar, rst \
         }' | less -RFX; \
     }; f"
 
