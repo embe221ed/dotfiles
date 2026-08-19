@@ -102,8 +102,7 @@
         if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
         days=7; if [ \"$1\" -gt 0 ] 2>/dev/null; then days=$1; shift; fi; \
         git log --since=\"${days} days ago\" --name-only --pretty=format: \"$@\" \
-        | sed '/^$/d' \
-        | sed 's|/[^/]*$||' \
+        | sed -e '/^$/d' -e 's|^[^/]*$|.|' -e 's|/[^/]*$||' \
         | sort | uniq -c | sort -rn \
         | awk '{ \
             count=$1; \
