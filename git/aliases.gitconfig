@@ -135,7 +135,7 @@
     branches = "!f() { \
         _help='git branches [count]  │  Branches sorted by last commit date (default: 20)'; \
         if [ \"$1\" = '-h' ] || [ \"$1\" = '--help' ]; then printf '\\n\\033[90m  ──────────────────────────────────────────────────────────────────\\033[0m\\n\\033[1;36m  %s\\033[0m\\n\\n' \"$_help\"; return; fi; \
-        n=${1:-20}; \
+        n=20; if [ \"$1\" -gt 0 ] 2>/dev/null; then n=$1; fi; \
         git branch -a --sort=-committerdate --format='%(refname:short)|%(committerdate:short)|%(authorname)|%(subject)' \
         | head -\"$n\" \
         | awk -F'|' '{ \
