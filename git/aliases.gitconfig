@@ -13,11 +13,16 @@
 # write target (that is why the link is named `aliases.gitconfig`, not the
 # auto-read `config` slot — see install.sh).
 #
-# The banners are printf, not echo, ON PURPOSE: git runs `!` aliases with
-# /bin/sh, which is dash on the Linux box (its echo interprets \033) but bash
-# on macOS (its echo does NOT — the main machine would print a literal
-# `\033[90m…` instead of a color). printf's format-string escapes render
-# identically under both, and POSIX guarantees \ddd octal in the format.
+# There is NO `echo` in the alias bodies, ON PURPOSE — banners and data alike
+# go through printf. git runs `!` aliases with /bin/sh, which is dash on the
+# Linux box (its echo interprets backslash escapes) but bash on macOS (its
+# echo does NOT), so any echo renders differently on the two machines. For the
+# \033 banners that meant a literal `\033[90m…` instead of color on the Mac;
+# for echoed DATA (an author name like `Bad\nname` — one env var away in a
+# hostile clone) it meant dash shattering recent-files' aligned row while the
+# Mac printed it intact. printf behaves identically under both: \ddd octal in
+# the FORMAT string is POSIX, and data rides in %s arguments, which are never
+# escape-processed (%b would be; do not use it).
 
 [alias]
     # ╔══════════════════════════════════════════════╗
@@ -82,9 +87,9 @@
         | while IFS= read -r file; do \
             if git ls-files --error-unmatch \"$file\" >/dev/null 2>&1; then \
                 info=$(git log -1 --format='%ad|%ar|%an' --date=short -- \"$file\"); \
-                date=$(echo \"$info\" | cut -d'|' -f1); \
-                ago=$(echo \"$info\" | cut -d'|' -f2); \
-                author=$(echo \"$info\" | cut -d'|' -f3); \
+                date=$(printf '%s\\n' \"$info\" | cut -d'|' -f1); \
+                ago=$(printf '%s\\n' \"$info\" | cut -d'|' -f2); \
+                author=$(printf '%s\\n' \"$info\" | cut -d'|' -f3); \
                 printf '\\033[33m  %s  \\033[36m%-14s  \\033[90m%-18s  \\033[0m%s\\n' \
                     \"$date\" \"$ago\" \"$author\" \"$file\"; \
             fi; \
