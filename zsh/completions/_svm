@@ -1,17 +1,22 @@
 #compdef svm
 
 _svm_local_versions() {
+    setopt localoptions no_glob_dots
     local -a versions
-    versions=($(command ls -1 $HOME/.svm/versions 2>/dev/null | grep -v '^\.'))
-    _describe 'installed versions' versions
+    local entry version
+    for entry in "$HOME"/.svm/versions/*(N/); do
+        version=${entry:t}
+        [[ $version != [.-]* && $version != *\\* && $version != *[[:cntrl:]]* && $version != [[:space:]]* && $version != *[[:space:]] ]] || continue
+        versions+=("$version")
+    done
+    compadd -X 'installed versions' -a versions
 }
 _svm_remote_versions() {
     local -a versions
-    versions=($(svm remote-list --tags-only --cached 2>/dev/null))
-    if [[ ${#versions[@]} -eq 0 ]]; then
-        versions=($(svm remote-list --tags-only 2>/dev/null))
-    fi
-    _describe 'available versions' versions
+    versions=(latest mainnet testnet devnet)
+    versions+=("${(@f)$(command svm remote-list --tags-only --cached 2>/dev/null)}")
+    versions=("${(@u)versions:#}")
+    compadd -X 'available versions (cached)' -a versions
 }
 
 
@@ -102,6 +107,12 @@ _arguments "${_arguments_options[@]}" : \
 '--help[Print help]' \
 ':name:' \
 '::path -- Directory containing the built binaries (default\: ., ./target/release, ./target/debug):_files -/' \
+&& ret=0
+;;
+(interactive)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
 && ret=0
 ;;
 (list)
@@ -225,6 +236,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(interactive)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (list)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -288,7 +303,8 @@ _svm_commands() {
 'use:Switch to an installed/linked version' \
 'exec:Run a command under a specific installed version without switching' \
 'link:Link a local build (e.g. svm link custom-dev)' \
-'list:List local versions (active one marked with *)' \
+'interactive:Open a guided menu for switching, pinning and installing versions' \
+'list:List local versions (active one marked with a checkmark)' \
 'show:Show the currently active version' \
 'which:Print the full path of the binary the active version resolves to' \
 'unset:Deactivate svm by removing shims' \
@@ -349,7 +365,8 @@ _svm__subcmd__help_commands() {
 'use:Switch to an installed/linked version' \
 'exec:Run a command under a specific installed version without switching' \
 'link:Link a local build (e.g. svm link custom-dev)' \
-'list:List local versions (active one marked with *)' \
+'interactive:Open a guided menu for switching, pinning and installing versions' \
+'list:List local versions (active one marked with a checkmark)' \
 'show:Show the currently active version' \
 'which:Print the full path of the binary the active version resolves to' \
 'unset:Deactivate svm by removing shims' \
@@ -390,6 +407,11 @@ _svm__subcmd__help__subcmd__help_commands() {
 _svm__subcmd__help__subcmd__install_commands() {
     local commands; commands=()
     _describe -t commands 'svm help install commands' commands "$@"
+}
+(( $+functions[_svm__subcmd__help__subcmd__interactive_commands] )) ||
+_svm__subcmd__help__subcmd__interactive_commands() {
+    local commands; commands=()
+    _describe -t commands 'svm help interactive commands' commands "$@"
 }
 (( $+functions[_svm__subcmd__help__subcmd__link_commands] )) ||
 _svm__subcmd__help__subcmd__link_commands() {
@@ -440,6 +462,11 @@ _svm__subcmd__help__subcmd__which_commands() {
 _svm__subcmd__install_commands() {
     local commands; commands=()
     _describe -t commands 'svm install commands' commands "$@"
+}
+(( $+functions[_svm__subcmd__interactive_commands] )) ||
+_svm__subcmd__interactive_commands() {
+    local commands; commands=()
+    _describe -t commands 'svm interactive commands' commands "$@"
 }
 (( $+functions[_svm__subcmd__link_commands] )) ||
 _svm__subcmd__link_commands() {

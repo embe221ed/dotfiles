@@ -17,6 +17,8 @@
 # there it is a silent skip, not a warning. The include.path line that reads the
 # link lives in ~/.gitconfig — a per-machine file this script never touches — so
 # repointing the symlink is the whole job.
+# Rex's init.lua is also best-effort, requiring both a source and an installed
+# CLI/server or macOS app. Its other machine-local files are left in place.
 #
 # ON macOS IT DOES NOT TOUCH ~/.zshrc OR ~/.zshenv, and that is the single most
 # important line in this file. Those are 14854 B and 356 B of INDEPENDENT,
@@ -59,6 +61,12 @@ done
 XDG=${XDG_CONFIG_HOME:-$HOME/.config}
 OMZ_CUSTOM=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}
 OS=$(uname)
+
+rex_available() {
+	command -v rex >/dev/null 2>&1 ||
+		[ -d /Applications/Rex.app ] || [ -d "/Applications/Rex Beta.app" ] ||
+		[ -d "$HOME/Applications/Rex.app" ] || [ -d "$HOME/Applications/Rex Beta.app" ]
+}
 
 link() {
 	[ -e "$1" ] || { echo "rescue.sh: no source $1 — skipped" >&2; return 0; }
@@ -106,6 +114,32 @@ fi
 # a --to root from before the split simply has no git/ directory, and a rescue
 # is not the moment to hear about aliases.
 [ -f "$ROOT/git/aliases.gitconfig" ] && link "$ROOT/git/aliases.gitconfig" "$XDG/git/aliases.gitconfig"
+
+if rex_available; then
+	if [ -f "$ROOT/rex/init.lua" ]; then
+		link "$ROOT/rex/init.lua" "$XDG/rex/init.lua"
+	fi
+	# Rescue can run without ~/.local/bin on PATH. Don't replace a CLI that
+	# resolves elsewhere, but restore the app-bundle link when it is needed.
+	rex_command=$(command -v rex 2>/dev/null || :)
+	if [ "$OS" = Darwin ]; then
+		case $rex_command in
+		"" | "$HOME/.local/bin/rex")
+			for rex_parent in /Applications "$HOME/Applications"; do
+				for rex_app in "Rex Beta.app" Rex.app; do
+					rex_binary="$rex_parent/$rex_app/Contents/Helpers/Rex Server.rex/Contents/MacOS/rex"
+					if [ -x "$rex_binary" ]; then
+						link "$rex_binary" "$HOME/.local/bin/rex"
+						break 2
+					fi
+				done
+			done
+			;;
+		esac
+	fi
+else
+	echo "rescue.sh: Rex not installed — rex/init.lua skipped" >&2
+fi
 
 # languages.lua is gitignored, so a fresh clone has none and init.lua:15's
 # unguarded require('languages') aborts the rest of init.lua. Relative link, to

@@ -18,11 +18,13 @@
 #
 #   Linux / container : 6 rows — ~/.zshenv, ~/.zshrc, ~/.config/nvim,
 #                       ~/.config/zsh/completions,
-#                       ~/.config/git/aliases.gitconfig, nvim/lua/languages.lua
+#                       ~/.config/git/aliases.gitconfig, nvim/lua/languages.lua,
+#                       plus rex/init.lua when Rex is installed. Up to 7.
 #   macOS (default)   : the last 4 of those (the zsh pair is SUPPRESSED — see
 #                       zsh_links) plus a 3-row Darwin tail: silicon/config and
-#                       the two oh-my-zsh prompt themes. Up to 7.
-#   macOS --with-zsh  : as above with the zsh pair restored. Up to 9.
+#                       the two oh-my-zsh prompt themes, plus rex/init.lua when
+#                       Rex is installed, and its bundled CLI if needed. Up to 9.
+#   macOS --with-zsh  : as above with the zsh pair restored. Up to 11.
 #
 # ONE MANAGED STEP IS NOT A ROW: the global git config must carry
 # `include.path = $XDG_CONFIG_HOME/git/aliases.gitconfig` or the linked aliases
@@ -304,6 +306,35 @@ report_zsh_scope() {
 	return 0
 }
 
+# The CLI/server can be installed on Linux; the macOS app need not expose its
+# bundled CLI on PATH. Link only init.lua, preserving Rex's other local files.
+rex_available() {
+	command -v rex >/dev/null 2>&1 ||
+		[ -d /Applications/Rex.app ] || [ -d "/Applications/Rex Beta.app" ] ||
+		[ -d "$HOME/Applications/Rex.app" ] || [ -d "$HOME/Applications/Rex Beta.app" ]
+}
+
+rex_links() {
+	if rex_available; then
+		printf '%s|%s\n' "$DOTFILES/rex/init.lua" "$XDG_CONFIG_HOME/rex/init.lua"
+	fi
+	# Keep a package-managed CLI if it already resolves elsewhere. Once our
+	# link exists it stays in the manifest, so --check and reruns still see it.
+	[ "$OS" = Darwin ] || return 0
+	rex_command=$(command -v rex 2>/dev/null || :)
+	case $rex_command in "" | "$HOME/.local/bin/rex") ;; *) return 0 ;; esac
+	for rex_parent in /Applications "$HOME/Applications"; do
+		for rex_app in "Rex Beta.app" Rex.app; do
+			rex_binary="$rex_parent/$rex_app/Contents/Helpers/Rex Server.rex/Contents/MacOS/rex"
+			if [ -x "$rex_binary" ]; then
+				printf '%s|%s\n' "$rex_binary" "$HOME/.local/bin/rex"
+				return 0
+			fi
+		done
+	done
+	return 0
+}
+
 darwin_links() {
 	[ "$OS" = Darwin ] || return 0
 	command -v silicon >/dev/null 2>&1 && printf '%s|%s\n' "$DOTFILES/silicon/config" "$XDG_CONFIG_HOME/silicon/config"
@@ -318,6 +349,7 @@ darwin_links() {
 # "silicon is not installed" are never the same silence. The oh-my-zsh pair is
 # reported as one line, because they share one gate.
 report_skipped() {
+	rex_available || plan "skip" "Rex not installed — no link managed for rex/init.lua"
 	[ "$OS" = Darwin ] || return 0
 	command -v silicon >/dev/null 2>&1 ||
 		plan "skip" "silicon not installed — no link managed for silicon/config"
@@ -337,6 +369,7 @@ $DOTFILES/nvim|$XDG_CONFIG_HOME/nvim
 $COMPLETIONS_SRC|$COMPLETIONS_DST
 $GIT_ALIASES_SRC|$GIT_ALIASES_DST
 languages.lua.$LANG_PROFILE|$DOTFILES/nvim/lua/languages.lua
+$(rex_links)
 $(darwin_links)
 EOF
 }

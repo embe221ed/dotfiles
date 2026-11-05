@@ -32,6 +32,9 @@ cd /opt/dotfiles
 reconstruct it from prose.** The manifest is OS-conditional and differs in both
 directions: macOS omits `~/.zshrc` and `~/.zshenv`, and adds `silicon/config`
 plus the two `oh-my-zsh/*.zsh-theme` prompt themes into `$ZSH_CUSTOM/themes/`.
+When Rex is installed, it also links `rex/init.lua` to
+`~/.config/rex/init.lua`. On macOS it exposes the bundled CLI in `~/.local/bin`
+when no other Rex CLI is on PATH. See [Rex configuration and test bindings](rex/README.md).
 
 ## Prerequisites this repo does not install
 
@@ -61,7 +64,7 @@ anywhere in this tree.
 
 | Repo | Owns |
 |---|---|
-| **dotfiles** (this) | `zsh/`, `nvim/`, `zsh/completions/`, `git/` (shared git aliases), `kitty/` themes, `blink/`, `ipython/`, `colorls/`, `silicon/`, `.ripgreprc` |
+| **dotfiles** (this) | `zsh/`, `nvim/`, `zsh/completions/`, `git/` (shared git aliases), `rex/`, `kitty/` themes, `blink/`, `ipython/`, `colorls/`, `silicon/`, `.ripgreprc` |
 | [**scripts**](https://github.com/embe221ed/scripts) | utilities, CTF tooling, the dev container image, and `utils/determine_system.sh` |
 | [**interdotensional**](https://github.com/embe221ed/interdotensional) | the theme generator: `nvim/lua/*.generated.lua`, `$ZSH_CUSTOM`, `~/.tmux.conf`, `~/.config/colorls`, `~/.config/kitty/kitty.conf`, and **all** of `~/.config/ghostty` and `~/.config/zellij` |
 
