@@ -64,6 +64,12 @@ local function fixture(options)
   end
   local env = setmetatable({
     rex = rex,
+    require = function(name)
+      equal(name, "copy-mode")
+      return { setup = function()
+        rex.action { name = "tmux_copy_mode", run = function() end }
+      end }
+    end,
     os = { getenv = function(name)
       equal(name, "INTERDIMUX_ROOT")
       return options.root
@@ -81,6 +87,7 @@ local function fixture(options)
         rex.bind("ctrl+b>g", "interdimux_dashboard")
         if options.integration == "partial" then error("fixture setup error") end
         rex.bind(args.agent_next_key, "interdimux_agent_next")
+        rex.bind(args.last_session_key, "interdimux_last_session")
       end }
     end,
   }, { __index = _G })
@@ -281,6 +288,7 @@ test("optional integration missing, syntax and partial failures fall back cleanl
     equal(s.binding("ctrl+b>g").action, "client.palette.toggle")
     equal(s.binding("ctrl+b>c").action, "client.tab.new")
     equal(s.binding("ctrl+b>tab").action, "client.sidebar.activity.toggle")
+    equal(s.binding("ctrl+b>shift+l").action, "session.switch")
     if integration then equal(#s.logs, 1); equal(s.logs[1].level, "warn") end
     assert(s.run("tmux_menu_navigator"))
     equal(s.queue[3].action, "pane.go_to")
@@ -293,6 +301,9 @@ test("integration root and setup options are preserved", function()
     equal(s.setup.root, root == "" and "/opt/tools/interdimux" or root)
     equal(s.setup.dashboard_ui, "terminal")
     equal(s.binding("ctrl+b>tab").action, "interdimux_agent_next")
+    equal(s.binding("ctrl+b>shift+l").action, "interdimux_last_session")
+    equal(s.binding("ctrl+b>ctrl+l").action, "pane.resize")
+    equal(s.binding("panes/shift+l").action, "pane.resize")
     equal(s.binding("ctrl+b>w").action, "interdimux")
     local ok, err = s.run("tmux_menu_navigator")
     assert(not ok and tostring(err):find("fixture launch error", 1, true))

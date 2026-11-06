@@ -19,12 +19,12 @@
 #   Linux / container : 6 rows — ~/.zshenv, ~/.zshrc, ~/.config/nvim,
 #                       ~/.config/zsh/completions,
 #                       ~/.config/git/aliases.gitconfig, nvim/lua/languages.lua,
-#                       plus rex/init.lua when Rex is installed. Up to 7.
+#                       plus 3 Rex Lua files when Rex is installed. Up to 9.
 #   macOS (default)   : the last 4 of those (the zsh pair is SUPPRESSED — see
 #                       zsh_links) plus a 3-row Darwin tail: silicon/config and
-#                       the two oh-my-zsh prompt themes, plus rex/init.lua when
-#                       Rex is installed, and its bundled CLI if needed. Up to 9.
-#   macOS --with-zsh  : as above with the zsh pair restored. Up to 11.
+#                       the two oh-my-zsh prompt themes, plus 3 Rex Lua files
+#                       when Rex is installed, and its CLI if needed. Up to 11.
+#   macOS --with-zsh  : as above with the zsh pair restored. Up to 13.
 #
 # ONE MANAGED STEP IS NOT A ROW: the global git config must carry
 # `include.path = $XDG_CONFIG_HOME/git/aliases.gitconfig` or the linked aliases
@@ -307,7 +307,7 @@ report_zsh_scope() {
 }
 
 # The CLI/server can be installed on Linux; the macOS app need not expose its
-# bundled CLI on PATH. Link only init.lua, preserving Rex's other local files.
+# bundled CLI on PATH. Link our Lua files, preserving Rex's other local files.
 rex_available() {
 	command -v rex >/dev/null 2>&1 ||
 		[ -d /Applications/Rex.app ] || [ -d "/Applications/Rex Beta.app" ] ||
@@ -316,7 +316,9 @@ rex_available() {
 
 rex_links() {
 	if rex_available; then
-		printf '%s|%s\n' "$DOTFILES/rex/init.lua" "$XDG_CONFIG_HOME/rex/init.lua"
+		for rex_config in init.lua copy-mode.lua copy-editor.lua; do
+			printf '%s|%s\n' "$DOTFILES/rex/$rex_config" "$XDG_CONFIG_HOME/rex/$rex_config"
+		done
 	fi
 	# Keep a package-managed CLI if it already resolves elsewhere. Once our
 	# link exists it stays in the manifest, so --check and reruns still see it.

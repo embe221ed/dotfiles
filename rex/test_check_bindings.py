@@ -36,6 +36,18 @@ class LoadedConfigTests(unittest.TestCase):
         self.assertIn("missing", checker.validate_loaded_config(
             self.checked, self.keymap)[0])
 
+    def test_required_module_edits_and_removal_are_detected(self):
+        self.path.write_text('require("copy-mode").setup {}\n')
+        module = self.path.with_name("copy-mode.lua")
+        module.write_text("return { setup = function() end }\n")
+        self.keymap["config"]["hash"] = hashlib.sha256(
+            self.path.read_bytes() + b"\0copy-mode.lua\0" + module.read_bytes()).hexdigest()
+        self.assertEqual(checker.validate_loaded_config(self.checked, self.keymap), [])
+        module.write_text("return {}\n")
+        self.assertIn("changed since", checker.validate_loaded_config(self.checked, self.keymap)[0])
+        module.unlink()
+        self.assertIn("module is missing", checker.validate_loaded_config(self.checked, self.keymap)[0])
+
     def test_another_config_path_is_not_fresh(self):
         self.keymap["config"]["path"] += ".other"
         self.assertIn("not the server", checker.validate_loaded_config(
@@ -71,8 +83,8 @@ class ArgumentTests(unittest.TestCase):
 
 class KeymapTests(unittest.TestCase):
     def test_history_and_submenus_cannot_be_one_shot(self):
-        for mode, keys, target in (("", ["ctrl+b", "["], "history"),
-                                   ("actions", ["["], "history"),
+        for mode, keys, target in (("", ["ctrl+b", "pageup"], "history"),
+                                   ("actions", ["h"], "history"),
                                    ("actions", ["m"], "panes")):
             binding = {"mode": mode, "keys": keys, "action": "client.mode.enter",
                        "args": {"name": target, "once": True}}

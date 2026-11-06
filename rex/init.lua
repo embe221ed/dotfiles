@@ -94,7 +94,10 @@ for _, movement in ipairs({
   local resize = { direction = movement.direction, amount = 2 }
   rex.bind("ctrl+b>" .. movement.key, "pane.focus", focus)
   rex.bind("ctrl+b>ctrl+" .. movement.key, "pane.resize", resize)
-  rex.bind("ctrl+b>shift+" .. movement.key, "pane.resize", resize)
+  -- Prefix+L is reserved for last-session; pane mode keeps all H/J/K/L keys.
+  if movement.key ~= "l" then
+    rex.bind("ctrl+b>shift+" .. movement.key, "pane.resize", resize)
+  end
   rex.bind("ctrl+b>alt+" .. movement.key, "pane.move." .. movement.direction)
   -- Use Rex's compact native groups for stable hint sizing on mode changes.
   rex.bind("panes/" .. movement.key, "pane.focus." .. movement.direction)
@@ -118,9 +121,13 @@ rex.bind("ctrl+b>/", "client.find.open")
 rex.bind("shift+pageup", "client.scroll.page_up")
 rex.bind("shift+pagedown", "client.scroll.page_down")
 
--- Native history browsing until Rex gains vi selection. Plain typing is blocked.
+-- A minimal Neovim overlay provides keyboard selection until Rex exposes it.
+require("copy-mode").setup { context_view = context_view }
+rex.bind("ctrl+b>[", "tmux_copy_mode")
+
+-- Native history browsing remains available without opening an editor.
 rex.mode("history", { exclusive = true })
-rex.bind("ctrl+b>[", "client.mode.enter", { name = "history" })
+rex.bind("ctrl+b>pageup", "client.mode.enter", { name = "history" })
 for _, key in ipairs({ "k", "pageup", "ctrl+u" }) do
   rex.bind("history/" .. key, "client.scroll.page_up")
 end
@@ -244,7 +251,7 @@ end
 -- Keep the submenu handoff client-side, so the following pane key is handled
 -- immediately. Pane exits clear both modes instead of returning to this menu.
 rex.bind("actions/m", "client.mode.enter", { name = "panes" })
-rex.bind("actions/[", "client.mode.enter", { name = "history" })
+rex.bind("actions/h", "client.mode.enter", { name = "history" })
 
 local function menu_action(name, key, title, category, target)
   rex.action {
@@ -270,6 +277,7 @@ menu_action("tmux_menu_toggle_float", "d", "Float / Dock Pane", "Pane", "pane.fl
 menu_action("tmux_menu_rename_pane", "r", "Rename Pane", "Pane", "pane.rename")
 menu_action("tmux_menu_balance", "=", "Balance Splits", "Pane", "pane.balance")
 menu_action("tmux_menu_scratch", "p", "Scratch Terminal", "Pane", "tmux_scratch")
+menu_action("tmux_menu_copy", "[", "Keyboard Copy Mode", "History", "tmux_copy_mode")
 menu_action("tmux_menu_new_window", "c", "New Tab", "Tab", "client.tab.new")
 menu_action("tmux_menu_rename_window", ",", "Rename Tab", "Tab", "client.tab.rename")
 menu_action("tmux_menu_break_pane", "shift+1", "Move Pane to New Tab", "Pane", "pane.move_to_new_tab")
@@ -291,6 +299,7 @@ if interdimux_file then
     dofile(interdimux_integration).setup {
       root = interdimux_root, dashboard_ui = "terminal",
       agent_next_key = "ctrl+b>tab",
+      last_session_key = "ctrl+b>shift+l",
     }
   end)
   interdimux_loaded = ok
@@ -312,5 +321,6 @@ else
   rex.bind("ctrl+b>g", "client.palette.toggle")
   rex.bind("ctrl+b>e", "client.sidebar.activity.toggle")
   rex.bind("ctrl+b>tab", "client.sidebar.activity.toggle")
+  rex.bind("ctrl+b>shift+l", "session.switch")
   menu_action("tmux_menu_navigator", "w", "Go to Anything", "Navigation", "pane.go_to")
 end

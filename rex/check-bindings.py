@@ -3,13 +3,14 @@
 
 Run `rex config reload` after edits, then run this script. Config check reads
 the file on disk; keymap checks the server's loaded configuration. This script
-compares the entry file's hash with the loaded keymap. Included Lua files and
-shortcuts saved in the app's settings still require a reload and live check.
+compares the entry file and required module's hash with the loaded keymap.
+dofile-loaded integrations and app-saved shortcuts still need a live check.
 """
 
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -70,9 +71,20 @@ def validate_loaded_config(checked, keymap):
         return ["checked file is not the server's loaded configuration; reload Rex"]
     if not loaded.get("hash"):
         return ["server did not report a configuration hash; cannot verify the loaded file"]
-    digest = hashlib.sha256(Path(checked["path"]).read_bytes()).hexdigest()
-    if digest != loaded["hash"]:
-        return ["init.lua changed since the server loaded it; reload Rex"]
+    entry = Path(checked["path"])
+    source = entry.read_bytes()
+    digest = hashlib.sha256(source)
+    # Rex frames each required module with NUL + relative filename + NUL.
+    # This config has one literal require; dofile-loaded integrations are not
+    # included by Rex. Keep this list aligned with init.lua's dependencies.
+    if re.search(rb'''\brequire\s*\(\s*["']copy-mode["']\s*\)''', source):
+        module = entry.parent / "copy-mode.lua"
+        if not module.is_file():
+            return ["required config module is missing: " + str(module)]
+        digest.update(b"\0copy-mode.lua\0")
+        digest.update(module.read_bytes())
+    if digest.hexdigest() != loaded["hash"]:
+        return ["init.lua or a required module changed since the server loaded it; reload Rex"]
     return []
 
 
@@ -179,7 +191,8 @@ def validate_keymap(keymap):
     for number in range(1, 10):
         require("", f"ctrl+b>{number}", f"tmux_window_{number}")
     require("", "alt+p", "tmux_scratch")
-    require("", "ctrl+b>[", "client.mode.enter", {"name": "history"})
+    require("", "ctrl+b>[", "tmux_copy_mode")
+    require("", "ctrl+b>pageup", "client.mode.enter", {"name": "history"})
     require("", "ctrl+b>shift+8", "pane.new_floating")
     require("", "ctrl+b>r", "pane.rename")
     require("", "ctrl+b>=", "pane.balance")
@@ -210,7 +223,8 @@ def validate_keymap(keymap):
     # exit can run before a pending selection and have its mode reopen later.
     require("actions", "q", "tmux_menu_cancel")
     require("actions", "esc", "tmux_menu_cancel")
-    require("actions", "[", "client.mode.enter", {"name": "history"})
+    require("actions", "[", "tmux_menu_copy")
+    require("actions", "h", "client.mode.enter", {"name": "history"})
     require("history", "/", "tmux_history_find")
     require("history", "y", "tmux_history_copy")
     for key, action in (("k", "client.scroll.page_up"), ("j", "client.scroll.page_down"),
@@ -232,12 +246,14 @@ def validate_keymap(keymap):
         require("", "ctrl+b>w", "interdimux")
         require("", "ctrl+b>e", "interdimux_agents")
         require("", "ctrl+b>tab", "interdimux_agent_next")
+        require("", "ctrl+b>shift+l", "interdimux_last_session")
     else:
         require("", "ctrl+b>f", "pane.go_to")
         require("", "ctrl+b>w", "pane.go_to")
         require("", "ctrl+b>g", "client.palette.toggle")
         require("", "ctrl+b>e", "client.sidebar.activity.toggle")
         require("", "ctrl+b>tab", "client.sidebar.activity.toggle")
+        require("", "ctrl+b>shift+l", "session.switch")
     for key, direction in (("h", "left"), ("j", "down"), ("k", "up"), ("l", "right")):
         require("panes", key, "pane.focus." + direction)
         require("panes", "shift+" + key, "pane.resize", {"direction": direction, "amount": 2})
@@ -288,7 +304,7 @@ def main():
         return 1
     print(f"PASS: {len(keymap.get('bindings', []))} loaded bindings; "
           f"{len(keymap.get('modes', []))} modes; client action names and supported argument checks passed.")
-    print("Entry-file hash matches the server. Reload after included Lua edits; app-saved shortcuts are not checked.")
+    print("Config and required-module hash matches the server. Reload after dofile-loaded Lua edits; app-saved shortcuts are not checked.")
     return 0
 
 

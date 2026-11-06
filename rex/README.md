@@ -11,9 +11,10 @@ Press and release **Ctrl+b**, then press the next key.
 | `c` | New tab |
 | `1`…`9` | Select that tab in this session; absent numbers do nothing |
 | `n` / `p` | Next / previous tab, wrapping within this session |
+| `L` | Last session recorded by Interdimux; repeat to toggle back |
 | `\|` / `-` | Split right / down |
 | `h` / `j` / `k` / `l` | Focus left / down / up / right |
-| `Ctrl+h/j/k/l` or `H/J/K/L` | Resize in that direction |
+| `Ctrl+h/j/k/l` | Resize in that direction; `H/J/K` are aliases |
 | `Alt+h/j/k/l` | Move the pane in that direction |
 | `Enter` | Persistent pane mode: repeat the same movement keys |
 | `z` / `=` | Toggle zoom / balance splits |
@@ -23,7 +24,8 @@ Press and release **Ctrl+b**, then press the next key.
 | `m` | Hide / restore all floats in this tab |
 | `,` / `r` / `$` | Rename tab / pane / session |
 | `!` | Move the pane to a new tab |
-| `[` / `/` | Browse history / search scrollback |
+| `[` | Keyboard copy mode: Vim selection in a floating Neovim viewer |
+| `/` / `PageUp` | Native scrollback search / history browsing |
 | `f` or `w` | Interdimux fuzzy session/tab/pane picker |
 | `g` | Interdimux dashboard |
 | `e` / `Tab` | Agents needing attention / next waiting agent |
@@ -46,7 +48,7 @@ produce characters such as `√` instead of Alt+V.
 
 **Pane mode:** Ctrl+b, Enter. `h/j/k/l` focus, `H/J/K/L` or `Ctrl+h/j/k/l`
 resize, and `Alt+h/j/k/l` move panes. `z` zooms, `=` balances, and `d`
-floats/docks. The modifiers mean the same thing as after the prefix.
+floats/docks. `L` resizes right here; directly after the prefix it switches sessions.
 Resize steps are 2% of the split. Moving a tiled pane rearranges the layout;
 moving a float changes its position.
 
@@ -57,13 +59,35 @@ This remains a manual follow-up on this Mac: the review reproduced the ratio
 override, but UI access became unavailable before that setting could be changed
 and tested. See the [Rex setting](https://www.superlogical.com/rex/docs/reference/mac-settings#setting-splits-focus-autobalance-splits).
 
-**History mode:** Ctrl+b, `[`. `k` / `j`, PageUp / PageDown, or Ctrl+u / Ctrl+d
+**Copy mode:** Ctrl+b, `[`. A floating Neovim viewer opens the focused terminal's
+screen and scrollback at the last nonblank line. Use Vim movement and `/` search;
+`v`, `V`, and Ctrl+v select characters, lines, and rectangles. `y` or Enter copies
+the selection and closes; Enter without a selection copies the current line.
+Normal Vim yank motions such as `yiw` and `yy` also copy and close. `q` or Ctrl+c
+cancels. Escape clears a selection first, then closes from normal mode.
+
+The viewer requires Neovim 0.10+ and uses its own minimal configuration, with
+plugins, modelines, swap, backups, and ShaDa disabled. Captures are private and
+deleted after loading. A local Mac connection copies through `pbcopy` and checks
+success before closing. Network connections use OSC 52 to request a clipboard
+write in the Rex app; Neovim and these config files must be installed on that
+server. Closing returns to the previous layer and restores saved zoom.
+Zoom restoration is transient across config reloads, like scratch's return zoom.
+
+This is a plain-text snapshot: output arriving afterward is not included, and
+alternate-screen programs expose only their current screen. Rex formats the
+whole available history, so very large captures still add latency. Capture uses
+the existing connection; startup runs only `mktemp` and Neovim, without a login
+shell or an extra Rex CLI. Closing from a zoomed pane makes one CLI call to
+restore zoom; ordinary closes use Rex's native layer restoration.
+
+**History mode:** Ctrl+b, PageUp. `k` / `j`, PageUp / PageDown, or Ctrl+u / Ctrl+d
 scroll by pages. `K` / `J` jump between shell prompts when shell integration
 provides them. `n` / `N` repeat the current search. `/` leaves the mode and
 opens Find; `y` copies an existing mouse selection and leaves the mode.
 This is native scrollback browsing, not vi selection or tmux copy-mode.
 
-Both modes ignore unbound keys. **q, Escape, Enter, Ctrl+c, or F12** leave
+Pane and history modes ignore unbound keys. **q, Escape, Enter, Ctrl+c, or F12** leave
 the complete mode stack, including a parent actions menu. Normal typing
 resumes afterward. There is no timed tmux repeat window; use pane mode for
 repeated resizing.
@@ -80,7 +104,7 @@ renaming, docking, or splitting it releases it from the scratch shortcut.
 
 **Actions menu:** Ctrl+b, `a`. The menu shows native hints, uses the same
 mnemonics as the direct shortcuts, and closes after a choice. `p` opens scratch,
-`m` enters pane mode, and `[` enters history mode. **q or Escape** cancels.
+`m` enters pane mode, `[` opens copy mode, and `h` enters history mode. **q or Escape** cancels.
 Unbound keys are ignored. The two submenus open directly in the client;
 other choices stay guarded until their server callback returns, then close
 the menu before opening a prompt or performing the native operation.
@@ -108,10 +132,11 @@ rex -C LABEL_OR_ID do client.config.reload
 python3 rex/check-bindings.py
 ```
 
-The installer links `init.lua` into `${XDG_CONFIG_HOME:-$HOME/.config}/rex/`
+The installer links `init.lua`, `copy-mode.lua`, and `copy-editor.lua` into
+`${XDG_CONFIG_HOME:-$HOME/.config}/rex/`
 when Rex is installed. On macOS it also links the bundled CLI to
 `~/.local/bin/rex` if no CLI resolves elsewhere on PATH. `rescue.sh` supports
-both links. Other files in the Rex config directory stay local.
+these links. Other files in the Rex config directory stay local.
 
 Reload both server and app after edits; a server-only reload can leave the
 app's shortcut cache stale. **Reload Config** in the app's palette also refreshes
@@ -139,10 +164,17 @@ Type `imux` in Rex's command palette to find its named actions.
 navigator, fzf, and coordinator CLI paths. These variables must be visible
 to Rex's server. Reload after integration edits too.
 
+**Last session:** Ctrl+b, Shift+L follows Interdimux's recent-session history,
+regardless of its configured list order. Repeating it toggles between two
+sessions. Sidebar clicks and native Rex session switches aren't tracked.
+The shortcut uses Rex's native session action directly from Lua.
+Until there is recorded history, it uses Interdimux's session order.
+
 If the integration is missing or setup fails, the core configuration still
 loads. Prefix+f/w opens Rex's native Go to Anything; g opens the command
-palette; e/Tab toggles native Activity. Partial integration bindings are removed
-on failure. The integration reports missing runtime dependencies when invoked.
+palette; e/Tab toggles native Activity; L opens the native session chooser.
+Partial integration bindings are removed on failure. The integration reports
+missing runtime dependencies when invoked.
 
 See the [shared Interdimux plan](INTERDIMUX-PLAN.md) and the integration
 checkout for its detailed workflows. This configuration selects terminal
@@ -164,14 +196,18 @@ The offline suite tests the real Lua config with a Rex API double: origin
 resolution including floats, window wrapping/numbers, stale contexts, scratch
 reuse/cwd/zoom/errors, menu ordering, and optional-integration failures. It also
 tests stale config detection, argument validation, and safe preference merging.
+Copy-mode tests cover chunked capture, launch failures and cleanup, origin/zoom
+guards, and real Neovim character/line/rectangle selections over a private PTY.
+They inspect OSC 52 output without touching the system clipboard.
 Lua 5.2+ is required for the behavior suite; the Python runner reports a skip
 if Lua is unavailable.
 
 The live validator checks action names, supported argument schemas, duplicate
 keys, sequence conflicts, critical bindings and exits, exclusive modes, and the
-loaded entry-file hash. It finds the bundled CLI if needed; `--rex PATH`
-overrides it. Included Lua files and shortcuts saved in app settings are outside
-the hash check, so reload and test those in the app.
+loaded hash of `init.lua` and its required copy-mode module. It finds the bundled
+CLI if needed; `--rex PATH` overrides it. Integrations loaded with `dofile` and
+shortcuts saved in app settings are outside the hash check, so reload and test
+those in the app. The copy editor's init is read afresh every time it opens.
 
 For a keyboard smoke test, use a disposable session: verify numbered tabs and
 wraparound, enter/leave both modes, search known scrollback text, toggle scratch

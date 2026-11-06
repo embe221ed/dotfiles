@@ -116,9 +116,11 @@ fi
 [ -f "$ROOT/git/aliases.gitconfig" ] && link "$ROOT/git/aliases.gitconfig" "$XDG/git/aliases.gitconfig"
 
 if rex_available; then
-	if [ -f "$ROOT/rex/init.lua" ]; then
-		link "$ROOT/rex/init.lua" "$XDG/rex/init.lua"
-	fi
+	for rex_config in init.lua copy-mode.lua copy-editor.lua; do
+		if [ -f "$ROOT/rex/$rex_config" ]; then
+			link "$ROOT/rex/$rex_config" "$XDG/rex/$rex_config"
+		fi
+	done
 	# Rescue can run without ~/.local/bin on PATH. Don't replace a CLI that
 	# resolves elsewhere, but restore the app-bundle link when it is needed.
 	rex_command=$(command -v rex 2>/dev/null || :)
