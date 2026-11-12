@@ -324,3 +324,16 @@ else
   rex.bind("ctrl+b>shift+l", "session.switch")
   menu_action("tmux_menu_navigator", "w", "Go to Anything", "Navigation", "pane.go_to")
 end
+
+-- Native picker/dashboard on prefix+f/g; prefix+w keeps the terminal picker.
+local interdimux_macos = interdimux_root .. "/integrations/rex_macos.lua"
+local interdimux_macos_file = io.open(interdimux_macos, "rb")
+if interdimux_macos_file then
+  interdimux_macos_file:close()
+  local ok, err = pcall(function()
+    dofile(interdimux_macos).setup { root = interdimux_root }
+    rex.bind("cmd+k", "interdimux_macos") -- Same picker as prefix+f.
+    rex.bind("ctrl+b>u", "interdimux_macos") -- Retain the previous native shortcut.
+  end)
+  if not ok then rex.log("warn", "Native Interdimux picker unavailable: " .. tostring(err)) end
+end
