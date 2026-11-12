@@ -1,6 +1,15 @@
 return {
   "folke/snacks.nvim",
   opts = {
+    styles = {
+      dashboard = {
+        wo = {
+          -- Keep whitespace and end-of-buffer markers out of the dashboard.
+          list = false,
+          fillchars = "eob: ",
+        },
+      },
+    },
     input = {},
     zen = {},
     words = { enabled = true, notify_jump = true },
