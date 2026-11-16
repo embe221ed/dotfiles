@@ -1,5 +1,6 @@
--- Tmux-style keys from interdotensional/templates/tmux/parts/.
--- Press and release Ctrl+B, then press the next key.
+-- Hybrid navigation: Option+Cmd+H/J/K/L focuses panes without a prefix.
+-- Tmux-style keys from interdotensional/templates/tmux/parts/ remain available:
+-- press and release Ctrl+B, then press the next key.
 -- Rex windows within a session are displayed as tabs in the macOS app.
 local function context_window(ctx, view)
   for index, window in ipairs(view.windows or {}) do
@@ -90,6 +91,8 @@ for _, movement in ipairs({
   { key = "l", direction = "right" },
 }) do
   local focus = { direction = movement.direction }
+  -- Use native focus actions; Option+Cmd+H replaces macOS Hide Others in Rex.
+  rex.bind("alt+cmd+" .. movement.key, "pane.focus." .. movement.direction)
   -- Rex measures this in percent of the split, rather than tmux's two cells.
   local resize = { direction = movement.direction, amount = 2 }
   rex.bind("ctrl+b>" .. movement.key, "pane.focus", focus)

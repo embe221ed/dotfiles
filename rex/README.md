@@ -1,8 +1,12 @@
 # Rex
 
-Tmux-style keys with Rex's native panes, floating terminals, scrollback, and
+Hybrid pane navigation with Rex's native panes, floating terminals, scrollback, and
 Interdimux navigation. A Rex **window** is a **tab inside a session**.
-Press and release **Ctrl+b**, then press the next key.
+
+**Option+Cmd+h/j/k/l** focuses the pane **left/down/up/right**, without a prefix.
+Option+Cmd+h replaces the macOS **Hide Others** shortcut in Rex.
+Tmux-style shortcuts also remain available: press and release **Ctrl+b**,
+then press the next key.
 
 ## Everyday keys
 
